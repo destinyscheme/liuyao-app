@@ -203,6 +203,7 @@ def calculate_hexagram(numbers, day_stem, day_branch):
 # 3. UI 呈現
 # ==============================================================================
 
+# 【CSS 修正：強制指定 star-box 內的文字顏色為深灰色 #333，解決白色背景文字看不見的問題】
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500&display=swap');
@@ -223,7 +224,15 @@ st.markdown("""
     .bar-yang-c { background-color: #888; }
     .bar-yin-c::before, .bar-yin-c::after { background-color: #888; }
     
-    .star-box { border: 1px solid #ddd; padding: 10px; margin-bottom: 15px; border-radius: 5px; background-color: #fff; }
+    /* 這裡加上 color: #333 !important; 確保文字在白色背景上可見 */
+    .star-box { 
+        border: 1px solid #ddd; 
+        padding: 10px; 
+        margin-bottom: 15px; 
+        border-radius: 5px; 
+        background-color: #fff; 
+        color: #333 !important; 
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -235,7 +244,7 @@ with st.sidebar:
     day_stem, day_branch = "", ""
     month_branch = ""
     
-    # 【關鍵修正：設定台北時間 (UTC+8)】
+    # 台北時間 (UTC+8)
     tz_offset = datetime.timedelta(hours=8)
     now_tw = datetime.datetime.utcnow() + tz_offset
     
@@ -252,7 +261,6 @@ with st.sidebar:
         gz_hour = lunar.getTimeInGanZhi()
     
     elif date_mode == "指定西曆":
-        # 使用台北時間為預設值
         d = st.date_input("日期", value=st.session_state.init_date)
         t = st.time_input("時間", value=st.session_state.init_time)
         
@@ -280,7 +288,7 @@ with st.sidebar:
     st.subheader("起卦 (由初爻至上爻)")
     cols = st.columns(6)
     input_vals = []
-    # 【修正：預設皆為 7，靜爻】
+    # 預設 7,7,7,7,7,7 (乾為天)
     def_vals = [7, 7, 7, 7, 7, 7]
     for i in range(6):
         val = cols[i].number_input(f"爻{i+1}", 6, 9, def_vals[i], key=f"n{i}")
@@ -291,7 +299,6 @@ with st.sidebar:
 if btn or True:
     m_name, c_name, palace, lines_data, p_el = calculate_hexagram(input_vals, day_stem, day_branch)
     
-    # 【關鍵判斷】：是否有動爻？(只要有一個 True 就是有動爻)
     has_moving = any(line["move"] for line in lines_data)
     
     def get_voids(stem, branch):
@@ -306,8 +313,8 @@ if btn or True:
     s_b = STAR_B.get(day_stem, ("-", "-", "-", "-"))
     s_c = STAR_C.get(day_branch, ("-", "-", "-", "-", "-", "-", "-"))
 
-    # 星煞區塊
-    st.markdown(f"""
+    # 1. 構建星煞區塊 HTML (Star Box)
+    star_html = f"""
     <div class="star-box">
         <div style="text-align:center; margin-bottom:10px;">
             <span class="red-text">{gz_year}</span> 年 
@@ -322,20 +329,18 @@ if btn or True:
             <b>日支：</b>桃花-{s_c[0]}，將星-{s_c[2]}，劫煞-{s_c[5]}，驛馬-{s_c[3]}，災煞-{s_c[6]}，謀星-{s_c[1]}，華蓋-{s_c[4]}
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """
 
-    # 標題與表格組合
-    
-    # 決定顯示標題
-    title_html = f'{m_name} (主) <span style="font-size:0.8em; color:#666; font-weight:normal;">[{palace}宮{p_el}]</span>'
+    # 2. 構建標題 HTML
+    title_text = f'{m_name} (主) <span style="font-size:0.8em; color:#666; font-weight:normal;">[{palace}宮{p_el}]</span>'
     if has_moving:
-        title_html += f' <span style="color:#ccc">➔</span> {c_name} (變)'
+        title_text += f' <span style="color:#ccc">➔</span> {c_name} (變)'
         
-    st.markdown(f'<div style="text-align:center; font-size:1.3em; font-weight:bold; margin: 10px 0;">{title_html}</div>', unsafe_allow_html=True)
+    title_html = f'<div style="text-align:center; font-size:1.3em; font-weight:bold; margin: 10px 0;">{title_text}</div>'
     
-    # 表格 header
+    # 3. 構建表格 HTML (Table)
+    table_html = ""
     if has_moving:
-        # 有動爻：顯示完整 6 欄
         table_html = """
         <table class="hex-table">
             <tr class="header-row">
@@ -348,7 +353,6 @@ if btn or True:
             </tr>
         """
     else:
-        # 無動爻：只顯示前 4 欄
         table_html = """
         <table class="hex-table">
             <tr class="header-row">
@@ -410,5 +414,6 @@ if btn or True:
         
     table_html += "</table>"
     
-    # 【最終渲染：這是唯一顯示 HTML 的地方，確保 unsafe_allow_html=True】
-    st.markdown(table_html, unsafe_allow_html=True)
+    # 【關鍵修正：一次性渲染所有 HTML，絕不分開 print，徹底杜絕顯示代碼的可能性】
+    final_html = star_html + title_html + table_html
+    st.markdown(final_html, unsafe_allow_html=True)

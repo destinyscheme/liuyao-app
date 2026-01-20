@@ -1,7 +1,6 @@
 import streamlit as st
 import datetime
 import pandas as pd
-from lunar_python import Solar, Lunar
 
 # ==============================================================================
 # 1. 核心資料庫 (Hardcoded Database - 修正版)

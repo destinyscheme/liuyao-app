@@ -4,7 +4,7 @@ import pandas as pd
 from lunar_python import Solar, Lunar
 
 # ==============================================================================
-# 0. 強制設定 (解決顯示代碼問題的關鍵)
+# 0. 網頁設定 (必須在最第一行)
 # ==============================================================================
 st.set_page_config(page_title="六爻智能排盤", layout="wide")
 
@@ -15,7 +15,6 @@ st.set_page_config(page_title="六爻智能排盤", layout="wide")
 HEAVENLY_STEMS = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"]
 EARTHLY_BRANCHES = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"]
 
-# 納音表
 NAYIN_TABLE = {
     "甲子": "海中金", "乙丑": "海中金", "丙寅": "爐中火", "丁卯": "爐中火",
     "戊辰": "大林木", "己巳": "大林木", "庚午": "路旁土", "辛未": "路旁土",
@@ -34,7 +33,6 @@ NAYIN_TABLE = {
     "庚申": "石榴木", "辛酉": "石榴木", "壬戌": "大海水", "癸亥": "大海水"
 }
 
-# 八卦基本資料 (Code 為 上爻->中爻->初爻 的方向)
 TRIGRAMS = {
     "乾": {"code": [1, 1, 1], "element": "金", "stems": ["甲", "壬"], "branches": ["子", "寅", "辰", "午", "申", "戌"]},
     "兌": {"code": [0, 1, 1], "element": "金", "stems": ["丁", "丁"], "branches": ["巳", "卯", "丑", "亥", "酉", "未"]},
@@ -46,7 +44,6 @@ TRIGRAMS = {
     "坤": {"code": [0, 0, 0], "element": "土", "stems": ["乙", "癸"], "branches": ["未", "巳", "卯", "丑", "亥", "酉"]},
 }
 
-# 64卦資料
 HEX_INFO = {
     "乾為天": ("乾", 6), "天風姤": ("乾", 1), "天山遯": ("乾", 2), "天地否": ("乾", 3),
     "風地觀": ("乾", 4), "山地剝": ("乾", 5), "火地晉": ("乾", 7), "火天大有": ("乾", 8),
@@ -77,7 +74,6 @@ BRANCH_ELEMENTS = {
     "子": "水", "丑": "土", "寅": "木", "卯": "木", "辰": "土", "巳": "火",
     "午": "火", "未": "土", "申": "金", "酉": "金", "戌": "土", "亥": "水"
 }
-
 LIU_SHEN = ["青龍", "朱雀", "勾陳", "騰蛇", "白虎", "玄武"]
 LIU_SHEN_START = {"甲":0, "乙":0, "丙":1, "丁":1, "戊":2, "己":3, "庚":4, "辛":4, "壬":5, "癸":5}
 
@@ -239,13 +235,16 @@ with st.sidebar:
     day_stem, day_branch = "", ""
     month_branch = ""
     
-    # 【關鍵修正】：初始化 Session State，確保預設時間只設定一次，不會被刷新覆蓋
+    # 【關鍵修正：設定台北時間 (UTC+8)】
+    tz_offset = datetime.timedelta(hours=8)
+    now_tw = datetime.datetime.utcnow() + tz_offset
+    
     if "init_time" not in st.session_state:
-        st.session_state.init_time = datetime.datetime.now().time()
+        st.session_state.init_time = now_tw.time()
+        st.session_state.init_date = now_tw.date()
 
     if date_mode == "自動 (Current)":
-        now = datetime.datetime.now()
-        solar = Solar.fromYmdHms(now.year, now.month, now.day, now.hour, now.minute, 0)
+        solar = Solar.fromYmdHms(now_tw.year, now_tw.month, now_tw.day, now_tw.hour, now_tw.minute, 0)
         lunar = solar.getLunar()
         gz_year = lunar.getYearInGanZhi()
         gz_month = lunar.getMonthInGanZhiExact()
@@ -253,8 +252,8 @@ with st.sidebar:
         gz_hour = lunar.getTimeInGanZhi()
     
     elif date_mode == "指定西曆":
-        d = st.date_input("日期", datetime.date.today())
-        # 【關鍵修正】：使用 value=st.session_state.init_time 避免重置
+        # 使用台北時間為預設值
+        d = st.date_input("日期", value=st.session_state.init_date)
         t = st.time_input("時間", value=st.session_state.init_time)
         
         solar = Solar.fromYmdHms(d.year, d.month, d.day, t.hour, t.minute, 0)
@@ -281,7 +280,7 @@ with st.sidebar:
     st.subheader("起卦 (由初爻至上爻)")
     cols = st.columns(6)
     input_vals = []
-    # 【設定修正】：預設值改為 7,7,7,7,7,7 (乾為天)
+    # 【修正：預設皆為 7，靜爻】
     def_vals = [7, 7, 7, 7, 7, 7]
     for i in range(6):
         val = cols[i].number_input(f"爻{i+1}", 6, 9, def_vals[i], key=f"n{i}")
@@ -291,6 +290,9 @@ with st.sidebar:
 
 if btn or True:
     m_name, c_name, palace, lines_data, p_el = calculate_hexagram(input_vals, day_stem, day_branch)
+    
+    # 【關鍵判斷】：是否有動爻？(只要有一個 True 就是有動爻)
+    has_moving = any(line["move"] for line in lines_data)
     
     def get_voids(stem, branch):
         s_idx = HEAVENLY_STEMS.index(stem)
@@ -304,6 +306,7 @@ if btn or True:
     s_b = STAR_B.get(day_stem, ("-", "-", "-", "-"))
     s_c = STAR_C.get(day_branch, ("-", "-", "-", "-", "-", "-", "-"))
 
+    # 星煞區塊
     st.markdown(f"""
     <div class="star-box">
         <div style="text-align:center; margin-bottom:10px;">
@@ -321,21 +324,40 @@ if btn or True:
     </div>
     """, unsafe_allow_html=True)
 
-    table_html = f"""
-    <div style="text-align:center; font-size:1.3em; font-weight:bold; margin: 10px 0;">
-        {m_name} (主) <span style="color:#ccc">➔</span> {c_name} (變)
-        <span style="font-size:0.8em; color:#666; font-weight:normal; margin-left:10px;">[{palace}宮{p_el}]</span>
-    </div>
-    <table class="hex-table">
-        <tr class="header-row">
-            <td width="10%">六神</td>
-            <td width="10%">伏神</td>
-            <td width="15%">納音</td>
-            <td width="35%">【本卦】</td>
-            <td width="5%"></td>
-            <td width="25%">【變卦】</td>
-        </tr>
-    """
+    # 標題與表格組合
+    
+    # 決定顯示標題
+    title_html = f'{m_name} (主) <span style="font-size:0.8em; color:#666; font-weight:normal;">[{palace}宮{p_el}]</span>'
+    if has_moving:
+        title_html += f' <span style="color:#ccc">➔</span> {c_name} (變)'
+        
+    st.markdown(f'<div style="text-align:center; font-size:1.3em; font-weight:bold; margin: 10px 0;">{title_html}</div>', unsafe_allow_html=True)
+    
+    # 表格 header
+    if has_moving:
+        # 有動爻：顯示完整 6 欄
+        table_html = """
+        <table class="hex-table">
+            <tr class="header-row">
+                <td width="10%">六神</td>
+                <td width="10%">伏神</td>
+                <td width="15%">納音</td>
+                <td width="35%">【本卦】</td>
+                <td width="5%"></td>
+                <td width="25%">【變卦】</td>
+            </tr>
+        """
+    else:
+        # 無動爻：只顯示前 4 欄
+        table_html = """
+        <table class="hex-table">
+            <tr class="header-row">
+                <td width="10%">六神</td>
+                <td width="10%">伏神</td>
+                <td width="15%">納音</td>
+                <td width="65%">【本卦】</td>
+            </tr>
+        """
     
     for i in range(5, -1, -1):
         line = lines_data[i]
@@ -347,17 +369,6 @@ if btn or True:
         
         move_dot = '<span class="red-text" style="font-size:1.2em;">O</span>' if line["move"] and m["type"]=="yang" else \
                    '<span class="red-text" style="font-size:1.2em;">X</span>' if line["move"] and m["type"]=="yin" else ""
-        
-        change_html = ""
-        if line["move"]:
-            change_html = f"""
-                <div style="display:flex; align-items:center; gap:5px;">
-                    <div class="{c_bar_cls}"></div>
-                    <div class="red-text">{c['rel']}{c['branch']}{c['el']}</div>
-                </div>
-            """
-        else:
-             change_html = f'<div class="{c_bar_cls}" style="opacity:0.2;"></div>'
         
         nayin_short = m["nayin"][-3:] if m["nayin"] else ""
 
@@ -373,11 +384,31 @@ if btn or True:
                     <div style="text-align:left; width:20px; color:#d32f2f; font-weight:bold;">{m['shiying']}</div>
                 </div>
             </td>
-            <td>{move_dot}</td>
-            <td>{change_html}</td>
-        </tr>
         """
+        
+        if has_moving:
+            change_content = ""
+            if line["move"]:
+                change_content = f"""
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        <div class="{c_bar_cls}"></div>
+                        <div class="red-text">{c['rel']}{c['branch']}{c['el']}</div>
+                    </div>
+                """
+            else:
+                 change_content = f'<div class="{c_bar_cls}" style="opacity:0.2;"></div>'
+            
+            row += f"""
+                <td>{move_dot}</td>
+                <td>{change_content}</td>
+            </tr>
+            """
+        else:
+            row += "</tr>"
+            
         table_html += row
         
     table_html += "</table>"
+    
+    # 【最終渲染：這是唯一顯示 HTML 的地方，確保 unsafe_allow_html=True】
     st.markdown(table_html, unsafe_allow_html=True)

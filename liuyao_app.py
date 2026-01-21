@@ -203,36 +203,23 @@ def calculate_hexagram(numbers, day_stem, day_branch):
 # 3. UI 呈現
 # ==============================================================================
 
-# 【CSS 修正：強制指定 star-box 內的文字顏色為深灰色 #333，解決白色背景文字看不見的問題】
+# 【CSS 修正：強制指定顏色、靠左對齊以防止 Markdown 程式碼區塊誤判】
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500&display=swap');
-    body, html, .stApp { font-family: "KaiTi", "DFKai-SB", "Noto Serif TC", serif !important; }
-    
-    .hex-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 18px; table-layout: fixed;}
-    .hex-table td { padding: 8px 2px; border-bottom: 1px solid #eee; vertical-align: middle; }
-    .header-row { background-color: #f0f2f6; font-weight: bold; color: #333; }
-    
-    .red-text { color: #d32f2f; font-weight: bold; }
-    .blue-text { color: #1976d2; }
-    .grey-text { color: #757575; font-size: 0.9em; }
-    
-    .bar-yang { display: inline-block; width: 60px; height: 12px; background-color: #333; border-radius: 2px; }
-    .bar-yin { display: inline-flex; width: 60px; height: 12px; justify-content: space-between; }
-    .bar-yin::before, .bar-yin::after { content: ""; width: 26px; height: 100%; background-color: #333; border-radius: 2px; }
-    
-    .bar-yang-c { background-color: #888; }
-    .bar-yin-c::before, .bar-yin-c::after { background-color: #888; }
-    
-    /* 這裡加上 color: #333 !important; 確保文字在白色背景上可見 */
-    .star-box { 
-        border: 1px solid #ddd; 
-        padding: 10px; 
-        margin-bottom: 15px; 
-        border-radius: 5px; 
-        background-color: #fff; 
-        color: #333 !important; 
-    }
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500&display=swap');
+body, html, .stApp { font-family: "KaiTi", "DFKai-SB", "Noto Serif TC", serif !important; }
+.hex-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 18px; table-layout: fixed;}
+.hex-table td { padding: 8px 2px; border-bottom: 1px solid #eee; vertical-align: middle; }
+.header-row { background-color: #f0f2f6; font-weight: bold; color: #333; }
+.red-text { color: #d32f2f; font-weight: bold; }
+.blue-text { color: #1976d2; }
+.grey-text { color: #757575; font-size: 0.9em; }
+.bar-yang { display: inline-block; width: 60px; height: 12px; background-color: #333; border-radius: 2px; }
+.bar-yin { display: inline-flex; width: 60px; height: 12px; justify-content: space-between; }
+.bar-yin::before, .bar-yin::after { content: ""; width: 26px; height: 100%; background-color: #333; border-radius: 2px; }
+.bar-yang-c { background-color: #888; }
+.bar-yin-c::before, .bar-yin-c::after { background-color: #888; }
+.star-box { border: 1px solid #ddd; padding: 10px; margin-bottom: 15px; border-radius: 5px; background-color: #fff; color: #333 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -313,55 +300,48 @@ if btn or True:
     s_b = STAR_B.get(day_stem, ("-", "-", "-", "-"))
     s_c = STAR_C.get(day_branch, ("-", "-", "-", "-", "-", "-", "-"))
 
-    # 1. 構建星煞區塊 HTML (Star Box)
-    star_html = f"""
-    <div class="star-box">
-        <div style="text-align:center; margin-bottom:10px;">
-            <span class="red-text">{gz_year}</span> 年 
-            <span class="red-text">{gz_month}</span> 月 
-            <span class="red-text">{gz_day}</span> 日 
-            <span class="red-text">{gz_hour}</span> 時 
-            &nbsp;&nbsp; (旬空: <span class="red-text">{voids}</span>)
-        </div>
-        <div style="font-size:0.9em; line-height:1.6;">
-            <b>月煞：</b>天喜-{s_a[0]}，天醫-{s_a[1]}<br>
-            <b>日干：</b>祿神-{s_b[0]}，羊刃-{s_b[1]}，文昌-{s_b[2]}，貴人-{s_b[3]}<br>
-            <b>日支：</b>桃花-{s_c[0]}，將星-{s_c[2]}，劫煞-{s_c[5]}，驛馬-{s_c[3]}，災煞-{s_c[6]}，謀星-{s_c[1]}，華蓋-{s_c[4]}
-        </div>
-    </div>
-    """
+    # 【關鍵修正】：HTML 字串內不可有縮排，否則會被 Markdown 誤判為程式碼區塊
+    star_html = f"""<div class="star-box">
+<div style="text-align:center; margin-bottom:10px;">
+<span class="red-text">{gz_year}</span> 年 
+<span class="red-text">{gz_month}</span> 月 
+<span class="red-text">{gz_day}</span> 日 
+<span class="red-text">{gz_hour}</span> 時 
+&nbsp;&nbsp; (旬空: <span class="red-text">{voids}</span>)
+</div>
+<div style="font-size:0.9em; line-height:1.6;">
+<b>月支：</b>天喜-{s_a[0]}，天醫-{s_a[1]}<br>
+<b>日干：</b>祿神-{s_b[0]}，羊刃-{s_b[1]}，文昌-{s_b[2]}，貴人-{s_b[3]}<br>
+<b>日支：</b>桃花-{s_c[0]}，將星-{s_c[2]}，劫煞-{s_c[5]}，驛馬-{s_c[3]}，災煞-{s_c[6]}，謀星-{s_c[1]}，華蓋-{s_c[4]}
+</div>
+</div>"""
 
-    # 2. 構建標題 HTML
+    # 標題 HTML
     title_text = f'{m_name} (主) <span style="font-size:0.8em; color:#666; font-weight:normal;">[{palace}宮{p_el}]</span>'
     if has_moving:
         title_text += f' <span style="color:#ccc">➔</span> {c_name} (變)'
         
     title_html = f'<div style="text-align:center; font-size:1.3em; font-weight:bold; margin: 10px 0;">{title_text}</div>'
     
-    # 3. 構建表格 HTML (Table)
-    table_html = ""
+    # 表格 HTML
     if has_moving:
-        table_html = """
-        <table class="hex-table">
-            <tr class="header-row">
-                <td width="10%">六神</td>
-                <td width="10%">伏神</td>
-                <td width="15%">納音</td>
-                <td width="35%">【本卦】</td>
-                <td width="5%"></td>
-                <td width="25%">【變卦】</td>
-            </tr>
-        """
+        table_html = """<table class="hex-table">
+<tr class="header-row">
+<td width="10%">六神</td>
+<td width="10%">伏神</td>
+<td width="15%">納音</td>
+<td width="35%">【本卦】</td>
+<td width="5%"></td>
+<td width="25%">【變卦】</td>
+</tr>"""
     else:
-        table_html = """
-        <table class="hex-table">
-            <tr class="header-row">
-                <td width="10%">六神</td>
-                <td width="10%">伏神</td>
-                <td width="15%">納音</td>
-                <td width="65%">【本卦】</td>
-            </tr>
-        """
+        table_html = """<table class="hex-table">
+<tr class="header-row">
+<td width="10%">六神</td>
+<td width="10%">伏神</td>
+<td width="15%">納音</td>
+<td width="65%">【本卦】</td>
+</tr>"""
     
     for i in range(5, -1, -1):
         line = lines_data[i]
@@ -376,37 +356,32 @@ if btn or True:
         
         nayin_short = m["nayin"][-3:] if m["nayin"] else ""
 
-        row = f"""
-        <tr>
-            <td class="grey-text">{line['god']}</td>
-            <td class="small-text" style="color:#999;">{line['hidden']}</td>
-            <td>{nayin_short}</td>
-            <td>
-                <div style="display:flex; align-items:center; justify-content:center; gap:15px;">
-                    <div style="text-align:right; min-width:60px;">{m['rel']}{m['branch']}{m['el']}</div>
-                    <div class="{m_bar_cls}"></div>
-                    <div style="text-align:left; width:20px; color:#d32f2f; font-weight:bold;">{m['shiying']}</div>
-                </div>
-            </td>
-        """
+        # 行 HTML (移除縮排)
+        row = f"""<tr>
+<td class="grey-text">{line['god']}</td>
+<td class="small-text" style="color:#999;">{line['hidden']}</td>
+<td>{nayin_short}</td>
+<td>
+<div style="display:flex; align-items:center; justify-content:center; gap:15px;">
+<div style="text-align:right; min-width:60px;">{m['rel']}{m['branch']}{m['el']}</div>
+<div class="{m_bar_cls}"></div>
+<div style="text-align:left; width:20px; color:#d32f2f; font-weight:bold;">{m['shiying']}</div>
+</div>
+</td>"""
         
         if has_moving:
             change_content = ""
             if line["move"]:
-                change_content = f"""
-                    <div style="display:flex; align-items:center; gap:5px;">
-                        <div class="{c_bar_cls}"></div>
-                        <div class="red-text">{c['rel']}{c['branch']}{c['el']}</div>
-                    </div>
-                """
+                change_content = f"""<div style="display:flex; align-items:center; gap:5px;">
+<div class="{c_bar_cls}"></div>
+<div class="red-text">{c['rel']}{c['branch']}{c['el']}</div>
+</div>"""
             else:
                  change_content = f'<div class="{c_bar_cls}" style="opacity:0.2;"></div>'
             
-            row += f"""
-                <td>{move_dot}</td>
-                <td>{change_content}</td>
-            </tr>
-            """
+            row += f"""<td>{move_dot}</td>
+<td>{change_content}</td>
+</tr>"""
         else:
             row += "</tr>"
             
@@ -414,6 +389,6 @@ if btn or True:
         
     table_html += "</table>"
     
-    # 【關鍵修正：一次性渲染所有 HTML，絕不分開 print，徹底杜絕顯示代碼的可能性】
+    # 最終輸出 (一次渲染)
     final_html = star_html + title_html + table_html
     st.markdown(final_html, unsafe_allow_html=True)

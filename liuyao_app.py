@@ -4,9 +4,9 @@ import pandas as pd
 from lunar_python import Solar, Lunar
 
 # ==============================================================================
-# 0. 網頁設定 (必須在最第一行)
+# 0. 網頁設定
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-專業版", layout="wide")
 
 # ==============================================================================
 # 1. 核心資料庫
@@ -44,6 +44,7 @@ TRIGRAMS = {
     "坤": {"code": [0, 0, 0], "element": "土", "stems": ["乙", "癸"], "branches": ["未", "巳", "卯", "丑", "亥", "酉"]},
 }
 
+# (宮名, 世爻位置) 1-6為各爻, 7=遊魂(世4), 8=歸魂(世3)
 HEX_INFO = {
     "乾為天": ("乾", 6), "天風姤": ("乾", 1), "天山遯": ("乾", 2), "天地否": ("乾", 3),
     "風地觀": ("乾", 4), "山地剝": ("乾", 5), "火地晉": ("乾", 7), "火天大有": ("乾", 8),
@@ -63,6 +64,10 @@ HEX_INFO = {
     "水山蹇": ("兌", 4), "地山謙": ("兌", 5), "雷山小過": ("兌", 7), "雷澤歸妹": ("兌", 8),
 }
 
+# 六沖與六合卦表
+SIX_CLASH_HEX = ["乾為天", "坎為水", "艮為山", "震為雷", "巽為風", "離為火", "坤為地", "兌為澤", "天雷無妄", "雷天大壯"]
+SIX_HARMONY_HEX = ["天地否", "地天泰", "地雷復", "雷地豫", "水澤節", "澤水困", "山火賁", "火山旅"]
+
 ELEMENT_RELATIONS = {
     ("金", "金"): "兄弟", ("金", "木"): "妻財", ("金", "水"): "子孫", ("金", "火"): "官鬼", ("金", "土"): "父母",
     ("木", "金"): "官鬼", ("木", "木"): "兄弟", ("木", "水"): "父母", ("木", "火"): "子孫", ("木", "土"): "妻財",
@@ -79,7 +84,6 @@ LIU_SHEN_START = {"甲":0, "乙":0, "丙":1, "丁":1, "戊":2, "己":3, "庚":4,
 
 STAR_A = {"子": ("未", "亥"), "丑": ("未", "子"), "寅": ("戌", "丑"), "卯": ("戌", "寅"), "辰": ("戌", "卯"), "巳": ("丑", "辰"), "午": ("丑", "巳"), "未": ("丑", "午"), "申": ("辰", "未"), "酉": ("辰", "申"), "戌": ("辰", "酉"), "亥": ("未", "戌")}
 STAR_B = {"甲": ("寅", "卯", "巳", "丑、未"), "乙": ("卯", "寅", "午", "申、子"), "丙": ("巳", "午", "申", "酉、亥"), "丁": ("午", "巳", "酉", "酉、亥"), "戊": ("巳", "午", "申", "丑、未"), "己": ("午", "巳", "酉", "申、子"), "庚": ("申", "酉", "亥", "寅、午"), "辛": ("酉", "申", "子", "寅、午"), "壬": ("亥", "子", "寅", "卯、巳"), "癸": ("子", "亥", "卯", "卯、巳")}
-# STAR_C 順序：桃花(0), 謀星(1), 將星(2), 驛馬(3), 華蓋(4), 劫煞(5), 災煞(6)
 STAR_C = {"子": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "丑": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "寅": ("卯", "辰", "午", "申", "戌", "亥", "子"), "卯": ("子", "丑", "卯", "巳", "未", "申", "酉"), "辰": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "巳": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "午": ("卯", "辰", "午", "申", "戌", "亥", "子"), "未": ("子", "丑", "卯", "巳", "未", "申", "酉"), "申": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "酉": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "戌": ("卯", "辰", "午", "申", "戌", "亥", "子"), "亥": ("子", "丑", "卯", "巳", "未", "申", "酉")}
 
 # ==============================================================================
@@ -150,37 +154,21 @@ def calculate_hexagram(numbers, day_stem, day_branch):
     palace_element = TRIGRAMS[palace_name]["element"]
     start_god = LIU_SHEN_START.get(day_stem, 0)
     
-    present_rels = set()
-    lines_data = []
+    # 判斷屬性
+    attributes = []
+    if m_name in SIX_CLASH_HEX: attributes.append("六沖")
+    if m_name in SIX_HARMONY_HEX: attributes.append("六合")
+    if shift == 7: attributes.append("遊魂")
+    if shift == 8: attributes.append("歸魂")
     
-    for i in range(6):
-        is_outer = i >= 3
-        local_idx = i - 3 if is_outer else i
-        
-        m_stem, m_branch, m_el, m_nayin = get_line_details(m_upper if is_outer else m_lower, local_idx, is_outer)
-        m_rel = ELEMENT_RELATIONS.get((palace_element, m_el), "")
-        present_rels.add(m_rel)
-        
-        c_stem, c_branch, c_el, c_nayin = get_line_details(c_upper if is_outer else c_lower, local_idx, is_outer)
-        c_rel = ELEMENT_RELATIONS.get((palace_element, c_el), "")
-        
-        god = LIU_SHEN[(start_god + i) % 6]
-        
-        shiying = ""
-        true_shift = shift
-        if shift == 7: true_shift = 3
-        if shift == 8: true_shift = 4
-        
-        if (i + 1) == true_shift: shiying = "世"
-        elif (i + 1) == ((true_shift + 3) % 6 if (true_shift + 3) % 6 != 0 else 6): shiying = "應"
-        
-        lines_data.append({
-            "god": god,
-            "main": {"stem": m_stem, "branch": m_branch, "el": m_el, "nayin": m_nayin, "rel": m_rel, "shiying": shiying, "type": "yang" if main_code[i] else "yin"},
-            "change": {"stem": c_stem, "branch": c_branch, "el": c_el, "nayin": c_nayin, "rel": c_rel, "type": "yang" if change_code[i] else "yin"},
-            "move": moves[i]
-        })
-        
+    c_attributes = []
+    c_palace, c_shift = HEX_INFO.get(c_name, ("未知", 0))
+    if c_name in SIX_CLASH_HEX: c_attributes.append("六沖")
+    if c_name in SIX_HARMONY_HEX: c_attributes.append("六合")
+    if c_shift == 7: c_attributes.append("遊魂")
+    if c_shift == 8: c_attributes.append("歸魂")
+    
+    # 準備藏伏 (本宮卦)
     base_lines = []
     base_u = palace_name
     base_l = palace_name
@@ -191,14 +179,55 @@ def calculate_hexagram(numbers, day_stem, day_branch):
         stem, branch, el, nayin = get_line_details(tri, local_idx, is_outer)
         rel = ELEMENT_RELATIONS.get((palace_element, el), "")
         base_lines.append({"rel": rel, "branch": branch, "el": el, "nayin": nayin, "stem": stem})
-        
-    for i in range(6):
-        lines_data[i]["hidden"] = ""
-        base_line = base_lines[i]
-        if base_line["rel"] not in present_rels:
-             lines_data[i]["hidden"] = f"{base_line['rel']}{base_line['branch']}{base_line['el']}"
 
-    return m_name, c_name, palace_name, lines_data, palace_element
+    lines_data = []
+    
+    for i in range(6):
+        is_outer = i >= 3
+        local_idx = i - 3 if is_outer else i
+        
+        m_stem, m_branch, m_el, m_nayin = get_line_details(m_upper if is_outer else m_lower, local_idx, is_outer)
+        m_rel = ELEMENT_RELATIONS.get((palace_element, m_el), "")
+        
+        # 變卦：始終計算，不論是否動爻
+        c_stem, c_branch, c_el, c_nayin = get_line_details(c_upper if is_outer else c_lower, local_idx, is_outer)
+        c_rel = ELEMENT_RELATIONS.get((palace_element, c_el), "")
+        
+        god = LIU_SHEN[(start_god + i) % 6]
+        
+        shiying = ""
+        # 世應位置邏輯修正
+        # shift=7 (遊魂) -> 世在4 (idx 3)
+        # shift=8 (歸魂) -> 世在3 (idx 2)
+        true_shift_pos = shift
+        if shift == 7: true_shift_pos = 4
+        if shift == 8: true_shift_pos = 3
+        
+        if (i + 1) == true_shift_pos: 
+            shiying = "世"
+        else:
+            # 應 = (世 + 3) mod 6. If result is 0, it means 6.
+            ying_pos = (true_shift_pos + 3) % 6
+            if ying_pos == 0: ying_pos = 6
+            if (i + 1) == ying_pos:
+                shiying = "應"
+        
+        # 藏伏邏輯：若該爻的主卦資訊 (六親+地支+五行) 與 本宮卦該爻 不同，則顯示本宮卦該爻
+        hidden_str = ""
+        base_line = base_lines[i]
+        # 比較元組：(六親, 地支, 五行)
+        if (base_line["rel"], base_line["branch"], base_line["el"]) != (m_rel, m_branch, m_el):
+            hidden_str = f"{base_line['rel']}{base_line['branch']}{base_line['el']}"
+
+        lines_data.append({
+            "god": god,
+            "hidden": hidden_str,
+            "main": {"stem": m_stem, "branch": m_branch, "el": m_el, "nayin": m_nayin, "rel": m_rel, "shiying": shiying, "type": "yang" if main_code[i] else "yin"},
+            "change": {"stem": c_stem, "branch": c_branch, "el": c_el, "nayin": c_nayin, "rel": c_rel, "type": "yang" if change_code[i] else "yin"},
+            "move": moves[i]
+        })
+
+    return m_name, c_name, palace_name, lines_data, palace_element, attributes, c_attributes
 
 # ==============================================================================
 # 3. UI 呈現
@@ -210,16 +239,17 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500&display=swap');
 body, html, .stApp { font-family: "KaiTi", "DFKai-SB", "Noto Serif TC", serif !important; }
 .hex-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 18px; table-layout: fixed; border: 1px solid #ddd; }
-.hex-table td { padding: 8px 2px; border-bottom: 1px solid #eee; vertical-align: middle; color: #333; }
-.header-row { background-color: #f0f2f6; font-weight: bold; color: #333; border-bottom: 2px solid #ccc; }
+.hex-table td { padding: 6px 2px; border-bottom: 1px solid #eee; vertical-align: middle; color: #333; }
+.header-row { background-color: #f0f2f6; font-weight: bold; color: #333; border-bottom: 2px solid #ccc; font-size: 16px; }
 .red-text { color: #d32f2f; font-weight: bold; }
 .grey-text { color: #555; font-size: 0.9em; }
-.bar-yang { display: inline-block; width: 50px; height: 12px; background-color: #333; border-radius: 2px; }
-.bar-yin { display: inline-flex; width: 50px; height: 12px; justify-content: space-between; }
-.bar-yin::before, .bar-yin::after { content: ""; width: 22px; height: 100%; background-color: #333; border-radius: 2px; }
+.bar-yang { display: inline-block; width: 45px; height: 10px; background-color: #333; border-radius: 2px; }
+.bar-yin { display: inline-flex; width: 45px; height: 10px; justify-content: space-between; }
+.bar-yin::before, .bar-yin::after { content: ""; width: 20px; height: 100%; background-color: #333; border-radius: 2px; }
 .bar-yang-c { background-color: #888; }
 .bar-yin-c::before, .bar-yin-c::after { background-color: #888; }
 .info-box { border: 1px solid #ddd; padding: 10px; margin-bottom: 5px; border-radius: 5px; background-color: #fff; color: #333 !important; }
+.attr-tag { font-size: 0.7em; border: 1px solid #999; border-radius: 3px; padding: 0 3px; color: #555; margin-left: 3px; font-weight: normal; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -231,7 +261,6 @@ with st.sidebar:
     day_stem, day_branch = "", ""
     month_branch = ""
     
-    # 台北時間 (UTC+8)
     tz_offset = datetime.timedelta(hours=8)
     now_tw = datetime.datetime.utcnow() + tz_offset
     
@@ -258,7 +287,7 @@ with st.sidebar:
         gz_day = lunar.getDayInGanZhi()
         gz_hour = lunar.getTimeInGanZhi()
 
-    else: # 手動干支
+    else: 
         c1, c2 = st.columns(2)
         gz_year = c1.text_input("年柱", "乙巳")
         gz_month = c2.text_input("月柱", "己丑")
@@ -275,7 +304,6 @@ with st.sidebar:
     st.subheader("起卦 (由初爻至上爻)")
     cols = st.columns(6)
     input_vals = []
-    # 預設 7,7,7,7,7,7 (乾為天)
     def_vals = [7, 7, 7, 7, 7, 7]
     for i in range(6):
         val = cols[i].number_input(f"爻{i+1}", 6, 9, def_vals[i], key=f"n{i}")
@@ -284,7 +312,7 @@ with st.sidebar:
     btn = st.button("排盤", type="primary")
 
 if btn or True:
-    m_name, c_name, palace, lines_data, p_el = calculate_hexagram(input_vals, day_stem, day_branch)
+    m_name, c_name, palace, lines_data, p_el, m_attrs, c_attrs = calculate_hexagram(input_vals, day_stem, day_branch)
     
     has_moving = any(line["move"] for line in lines_data)
     
@@ -300,8 +328,7 @@ if btn or True:
     s_b = STAR_B.get(day_stem, ("-", "-", "-", "-"))
     s_c = STAR_C.get(day_branch, ("-", "-", "-", "-", "-", "-", "-"))
 
-    # 1. 資訊區塊 (Info Box) - 嚴格按照：先星煞，後日期
-    # 日支排序：桃花0, 謀星1, 將星2, 驛馬3, 華蓋4, 劫煞5, 災煞6
+    # 星煞HTML (嚴格排序)
     info_html = f"""<div class="info-box">
 <div style="font-size:0.95em; line-height:1.7; margin-bottom:8px; border-bottom:1px dashed #ddd; padding-bottom:8px;">
 <b>月支：</b>天喜-{s_a[0]}，天醫-{s_a[1]}<br>
@@ -317,31 +344,37 @@ if btn or True:
 </div>
 </div>"""
 
-    # 2. 標題 (卦名)
-    title_text = f'{m_name} (主) <span style="font-size:0.8em; color:#666; font-weight:normal;">[{palace}宮{p_el}]</span>'
+    # 屬性標籤生成
+    def make_tags(attr_list, palace_info=None):
+        tags = ""
+        if palace_info: tags += f'<span class="attr-tag" style="border-color:#333; color:#333;">{palace_info}</span>'
+        for a in attr_list:
+            tags += f'<span class="attr-tag">{a}</span>'
+        return tags
+
+    m_tags = make_tags(m_attrs, f"{palace}宮{p_el}")
+    # 變卦顯示本宮資訊嗎？通常只顯示主卦的本宮。變卦顯示其自身屬性。
+    c_tags = make_tags(c_attrs)
+
+    # 標題區
+    title_html = f"""<div style="text-align:center; margin: 10px 0;">
+<span style="font-size:1.3em; font-weight:bold;">{m_name}</span> {m_tags}
+"""
     if has_moving:
-        title_text += f' <span style="color:#ccc">➔</span> {c_name} (變)'
-        
-    title_html = f'<div style="text-align:center; font-size:1.3em; font-weight:bold; margin: 10px 0;">{title_text}</div>'
+        title_html += f"""<span style="color:#ccc; margin:0 10px;">➔</span> 
+<span style="font-size:1.3em; font-weight:bold;">{c_name}</span> {c_tags}"""
+    title_html += "</div>"
     
-    # 3. 表格 (Table) - 順序：六神, 伏神, 本卦, 變卦, 納音
-    if has_moving:
-        table_html = """<table class="hex-table">
+    # 表格 - 嚴格依照：六神 | 藏伏 | 主卦 | 主納音 | 變卦 | 變納音
+    # 如果沒有變卦，其實變卦欄位就是靜態顯示。Excel 截圖通常會保留結構。
+    table_html = """<table class="hex-table">
 <tr class="header-row">
 <td width="8%">六神</td>
-<td width="10%">伏神</td>
-<td width="30%">【本卦】</td>
-<td width="30%">【變卦】</td>
-<td width="12%">納音</td>
-</tr>"""
-    else:
-        # 若無變卦，變卦欄位保留空白或隱藏，此處依照Excel風格，納音緊接本卦
-        table_html = """<table class="hex-table">
-<tr class="header-row">
-<td width="10%">六神</td>
-<td width="12%">伏神</td>
-<td width="40%">【本卦】</td>
-<td width="18%">納音</td>
+<td width="10%">藏伏</td>
+<td width="28%">【主卦】</td>
+<td width="13%" class="grey-text" style="font-size:0.8em">納音</td>
+<td width="28%">【變卦】</td>
+<td width="13%" class="grey-text" style="font-size:0.8em">納音</td>
 </tr>"""
     
     for i in range(5, -1, -1):
@@ -352,50 +385,40 @@ if btn or True:
         m_bar_cls = "bar-yang" if m["type"] == "yang" else "bar-yin"
         c_bar_cls = "bar-yang bar-yang-c" if c["type"] == "yang" else "bar-yin bar-yin-c"
         
-        move_dot = '<span class="red-text" style="font-size:1.2em;">O</span>' if line["move"] and m["type"]=="yang" else \
-                   '<span class="red-text" style="font-size:1.2em;">X</span>' if line["move"] and m["type"]=="yin" else ""
+        move_dot = '<span class="red-text" style="font-size:1.1em; font-weight:bold;">O</span>' if line["move"] and m["type"]=="yang" else \
+                   '<span class="red-text" style="font-size:1.1em; font-weight:bold;">X</span>' if line["move"] and m["type"]=="yin" else ""
         
-        nayin_short = m["nayin"][-3:] if m["nayin"] else ""
+        m_nayin_short = m["nayin"][-3:] if m["nayin"] else ""
+        c_nayin_short = c["nayin"][-3:] if c["nayin"] else ""
 
-        # 本卦呈現
-        main_cell = f"""<div style="display:flex; align-items:center; justify-content:center; gap:8px;">
-<div style="text-align:right; min-width:50px;">{m['rel']}{m['branch']}{m['el']}</div>
+        # 主卦單元格
+        main_cell = f"""<div style="display:flex; align-items:center; justify-content:center; gap:5px;">
+<div style="text-align:right; min-width:55px;">{m['rel']}{m['branch']}{m['el']}</div>
 <div class="{m_bar_cls}"></div>
-<div style="text-align:left; width:15px; color:#d32f2f; font-weight:bold;">{m['shiying']}</div>
+<div style="text-align:left; width:15px; color:#d32f2f; font-weight:bold; font-size:0.9em;">{m['shiying']}</div>
 <div style="width:10px;">{move_dot}</div>
 </div>"""
 
-        # 變卦呈現
-        change_cell = ""
-        if line["move"]:
-            change_cell = f"""<div style="display:flex; align-items:center; justify-content:center; gap:5px;">
+        # 變卦單元格 - 始終顯示內容，只是顏色可能區分
+        # 如果是動爻，用深色/紅色顯示，如果不是，用灰色顯示? 
+        # 根據要求「變卦每一爻都要顯示」，通常是一樣的格式。
+        # 為了區分，靜爻的變卦欄位可以用稍微淡一點的顏色，或者正常顯示。這裡正常顯示。
+        change_cell = f"""<div style="display:flex; align-items:center; justify-content:center; gap:5px;">
 <div class="{c_bar_cls}"></div>
-<div class="red-text">{c['rel']}{c['branch']}{c['el']}</div>
+<div style="text-align:left; min-width:55px; color:#555;">{c['rel']}{c['branch']}{c['el']}</div>
 </div>"""
-        else:
-            change_cell = f'<div style="display:flex; align-items:center; justify-content:center;"><div class="{c_bar_cls}" style="opacity:0.2;"></div></div>'
 
-        # 組裝行
-        if has_moving:
-            row = f"""<tr>
+        row = f"""<tr>
 <td class="grey-text">{line['god']}</td>
 <td class="grey-text" style="font-size:0.85em;">{line['hidden']}</td>
 <td>{main_cell}</td>
+<td class="grey-text" style="font-size:0.85em;">{m_nayin_short}</td>
 <td>{change_cell}</td>
-<td class="grey-text">{nayin_short}</td>
+<td class="grey-text" style="font-size:0.85em;">{c_nayin_short}</td>
 </tr>"""
-        else:
-             row = f"""<tr>
-<td class="grey-text">{line['god']}</td>
-<td class="grey-text" style="font-size:0.85em;">{line['hidden']}</td>
-<td>{main_cell}</td>
-<td class="grey-text">{nayin_short}</td>
-</tr>"""
-            
         table_html += row
         
     table_html += "</table>"
     
-    # 最終輸出 (零縮排)
     final_html = info_html + title_html + table_html
     st.markdown(final_html, unsafe_allow_html=True)

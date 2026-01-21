@@ -79,6 +79,7 @@ LIU_SHEN_START = {"甲":0, "乙":0, "丙":1, "丁":1, "戊":2, "己":3, "庚":4,
 
 STAR_A = {"子": ("未", "亥"), "丑": ("未", "子"), "寅": ("戌", "丑"), "卯": ("戌", "寅"), "辰": ("戌", "卯"), "巳": ("丑", "辰"), "午": ("丑", "巳"), "未": ("丑", "午"), "申": ("辰", "未"), "酉": ("辰", "申"), "戌": ("辰", "酉"), "亥": ("未", "戌")}
 STAR_B = {"甲": ("寅", "卯", "巳", "丑、未"), "乙": ("卯", "寅", "午", "申、子"), "丙": ("巳", "午", "申", "酉、亥"), "丁": ("午", "巳", "酉", "酉、亥"), "戊": ("巳", "午", "申", "丑、未"), "己": ("午", "巳", "酉", "申、子"), "庚": ("申", "酉", "亥", "寅、午"), "辛": ("酉", "申", "子", "寅、午"), "壬": ("亥", "子", "寅", "卯、巳"), "癸": ("子", "亥", "卯", "卯、巳")}
+# STAR_C 順序：桃花(0), 謀星(1), 將星(2), 驛馬(3), 華蓋(4), 劫煞(5), 災煞(6)
 STAR_C = {"子": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "丑": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "寅": ("卯", "辰", "午", "申", "戌", "亥", "子"), "卯": ("子", "丑", "卯", "巳", "未", "申", "酉"), "辰": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "巳": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "午": ("卯", "辰", "午", "申", "戌", "亥", "子"), "未": ("子", "丑", "卯", "巳", "未", "申", "酉"), "申": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "酉": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "戌": ("卯", "辰", "午", "申", "戌", "亥", "子"), "亥": ("子", "丑", "卯", "巳", "未", "申", "酉")}
 
 # ==============================================================================
@@ -203,23 +204,22 @@ def calculate_hexagram(numbers, day_stem, day_branch):
 # 3. UI 呈現
 # ==============================================================================
 
-# 【CSS 修正：強制指定顏色、靠左對齊以防止 Markdown 程式碼區塊誤判】
+# 強制 CSS (文字黑色、無縮排、表格置中)
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500&display=swap');
 body, html, .stApp { font-family: "KaiTi", "DFKai-SB", "Noto Serif TC", serif !important; }
-.hex-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 18px; table-layout: fixed;}
-.hex-table td { padding: 8px 2px; border-bottom: 1px solid #eee; vertical-align: middle; }
-.header-row { background-color: #f0f2f6; font-weight: bold; color: #333; }
+.hex-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 18px; table-layout: fixed; border: 1px solid #ddd; }
+.hex-table td { padding: 8px 2px; border-bottom: 1px solid #eee; vertical-align: middle; color: #333; }
+.header-row { background-color: #f0f2f6; font-weight: bold; color: #333; border-bottom: 2px solid #ccc; }
 .red-text { color: #d32f2f; font-weight: bold; }
-.blue-text { color: #1976d2; }
-.grey-text { color: #757575; font-size: 0.9em; }
-.bar-yang { display: inline-block; width: 60px; height: 12px; background-color: #333; border-radius: 2px; }
-.bar-yin { display: inline-flex; width: 60px; height: 12px; justify-content: space-between; }
-.bar-yin::before, .bar-yin::after { content: ""; width: 26px; height: 100%; background-color: #333; border-radius: 2px; }
+.grey-text { color: #555; font-size: 0.9em; }
+.bar-yang { display: inline-block; width: 50px; height: 12px; background-color: #333; border-radius: 2px; }
+.bar-yin { display: inline-flex; width: 50px; height: 12px; justify-content: space-between; }
+.bar-yin::before, .bar-yin::after { content: ""; width: 22px; height: 100%; background-color: #333; border-radius: 2px; }
 .bar-yang-c { background-color: #888; }
 .bar-yin-c::before, .bar-yin-c::after { background-color: #888; }
-.star-box { border: 1px solid #ddd; padding: 10px; margin-bottom: 15px; border-radius: 5px; background-color: #fff; color: #333 !important; }
+.info-box { border: 1px solid #ddd; padding: 10px; margin-bottom: 5px; border-radius: 5px; background-color: #fff; color: #333 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -300,47 +300,48 @@ if btn or True:
     s_b = STAR_B.get(day_stem, ("-", "-", "-", "-"))
     s_c = STAR_C.get(day_branch, ("-", "-", "-", "-", "-", "-", "-"))
 
-    # 【關鍵修正】：HTML 字串內不可有縮排，否則會被 Markdown 誤判為程式碼區塊
-    star_html = f"""<div class="star-box">
-<div style="text-align:center; margin-bottom:10px;">
+    # 1. 資訊區塊 (Info Box) - 嚴格按照：先星煞，後日期
+    # 日支排序：桃花0, 謀星1, 將星2, 驛馬3, 華蓋4, 劫煞5, 災煞6
+    info_html = f"""<div class="info-box">
+<div style="font-size:0.95em; line-height:1.7; margin-bottom:8px; border-bottom:1px dashed #ddd; padding-bottom:8px;">
+<b>月支：</b>天喜-{s_a[0]}，天醫-{s_a[1]}<br>
+<b>日干：</b>祿神-{s_b[0]}，羊刃-{s_b[1]}，文昌-{s_b[2]}，貴人-{s_b[3]}<br>
+<b>日支：</b>桃花-{s_c[0]}，謀星-{s_c[1]}，將星-{s_c[2]}，驛馬-{s_c[3]}，華蓋-{s_c[4]}，劫煞-{s_c[5]}，災煞-{s_c[6]}
+</div>
+<div style="text-align:center; font-size:1.1em; font-weight:bold;">
 <span class="red-text">{gz_year}</span> 年 
 <span class="red-text">{gz_month}</span> 月 
 <span class="red-text">{gz_day}</span> 日 
 <span class="red-text">{gz_hour}</span> 時 
 &nbsp;&nbsp; (旬空: <span class="red-text">{voids}</span>)
 </div>
-<div style="font-size:0.9em; line-height:1.6;">
-<b>月支：</b>天喜-{s_a[0]}，天醫-{s_a[1]}<br>
-<b>日干：</b>祿神-{s_b[0]}，羊刃-{s_b[1]}，文昌-{s_b[2]}，貴人-{s_b[3]}<br>
-<b>日支：</b>桃花-{s_c[0]}，將星-{s_c[2]}，劫煞-{s_c[5]}，驛馬-{s_c[3]}，災煞-{s_c[6]}，謀星-{s_c[1]}，華蓋-{s_c[4]}
-</div>
 </div>"""
 
-    # 標題 HTML
+    # 2. 標題 (卦名)
     title_text = f'{m_name} (主) <span style="font-size:0.8em; color:#666; font-weight:normal;">[{palace}宮{p_el}]</span>'
     if has_moving:
         title_text += f' <span style="color:#ccc">➔</span> {c_name} (變)'
         
     title_html = f'<div style="text-align:center; font-size:1.3em; font-weight:bold; margin: 10px 0;">{title_text}</div>'
     
-    # 表格 HTML
+    # 3. 表格 (Table) - 順序：六神, 伏神, 本卦, 變卦, 納音
     if has_moving:
         table_html = """<table class="hex-table">
 <tr class="header-row">
-<td width="10%">六神</td>
+<td width="8%">六神</td>
 <td width="10%">伏神</td>
-<td width="15%">納音</td>
-<td width="35%">【本卦】</td>
-<td width="5%"></td>
-<td width="25%">【變卦】</td>
+<td width="30%">【本卦】</td>
+<td width="30%">【變卦】</td>
+<td width="12%">納音</td>
 </tr>"""
     else:
+        # 若無變卦，變卦欄位保留空白或隱藏，此處依照Excel風格，納音緊接本卦
         table_html = """<table class="hex-table">
 <tr class="header-row">
 <td width="10%">六神</td>
-<td width="10%">伏神</td>
-<td width="15%">納音</td>
-<td width="65%">【本卦】</td>
+<td width="12%">伏神</td>
+<td width="40%">【本卦】</td>
+<td width="18%">納音</td>
 </tr>"""
     
     for i in range(5, -1, -1):
@@ -356,39 +357,45 @@ if btn or True:
         
         nayin_short = m["nayin"][-3:] if m["nayin"] else ""
 
-        # 行 HTML (移除縮排)
-        row = f"""<tr>
-<td class="grey-text">{line['god']}</td>
-<td class="small-text" style="color:#999;">{line['hidden']}</td>
-<td>{nayin_short}</td>
-<td>
-<div style="display:flex; align-items:center; justify-content:center; gap:15px;">
-<div style="text-align:right; min-width:60px;">{m['rel']}{m['branch']}{m['el']}</div>
+        # 本卦呈現
+        main_cell = f"""<div style="display:flex; align-items:center; justify-content:center; gap:8px;">
+<div style="text-align:right; min-width:50px;">{m['rel']}{m['branch']}{m['el']}</div>
 <div class="{m_bar_cls}"></div>
-<div style="text-align:left; width:20px; color:#d32f2f; font-weight:bold;">{m['shiying']}</div>
-</div>
-</td>"""
-        
-        if has_moving:
-            change_content = ""
-            if line["move"]:
-                change_content = f"""<div style="display:flex; align-items:center; gap:5px;">
+<div style="text-align:left; width:15px; color:#d32f2f; font-weight:bold;">{m['shiying']}</div>
+<div style="width:10px;">{move_dot}</div>
+</div>"""
+
+        # 變卦呈現
+        change_cell = ""
+        if line["move"]:
+            change_cell = f"""<div style="display:flex; align-items:center; justify-content:center; gap:5px;">
 <div class="{c_bar_cls}"></div>
 <div class="red-text">{c['rel']}{c['branch']}{c['el']}</div>
 </div>"""
-            else:
-                 change_content = f'<div class="{c_bar_cls}" style="opacity:0.2;"></div>'
-            
-            row += f"""<td>{move_dot}</td>
-<td>{change_content}</td>
+        else:
+            change_cell = f'<div style="display:flex; align-items:center; justify-content:center;"><div class="{c_bar_cls}" style="opacity:0.2;"></div></div>'
+
+        # 組裝行
+        if has_moving:
+            row = f"""<tr>
+<td class="grey-text">{line['god']}</td>
+<td class="grey-text" style="font-size:0.85em;">{line['hidden']}</td>
+<td>{main_cell}</td>
+<td>{change_cell}</td>
+<td class="grey-text">{nayin_short}</td>
 </tr>"""
         else:
-            row += "</tr>"
+             row = f"""<tr>
+<td class="grey-text">{line['god']}</td>
+<td class="grey-text" style="font-size:0.85em;">{line['hidden']}</td>
+<td>{main_cell}</td>
+<td class="grey-text">{nayin_short}</td>
+</tr>"""
             
         table_html += row
         
     table_html += "</table>"
     
-    # 最終輸出 (一次渲染)
-    final_html = star_html + title_html + table_html
+    # 最終輸出 (零縮排)
+    final_html = info_html + title_html + table_html
     st.markdown(final_html, unsafe_allow_html=True)

@@ -3,9 +3,9 @@ import datetime
 from lunar_python import Solar, Lunar
 
 # ==============================================================================
-# 0. 網頁設定 & CSS (視覺優化：無縫表格 + 獨立箭頭欄)
+# 0. 網頁設定 & CSS (視覺優化：無縫表格 + 獨立箭頭欄 + 黑白風格)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-黑白專業版v7", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-黑白專業版v8", layout="wide")
 
 st.markdown("""
 <style>
@@ -52,12 +52,9 @@ input.st-ai, input.st-ah, input {
 .hex-table tr:last-child td { border-bottom: none; }
 .hex-table td:last-child { border-right: none; }
 
-/* [更新 2] 移除特定欄位的垂直分隔線，創造無縫效果 */
-/* 主卦欄：右邊框移除 */
+/* 移除特定欄位的垂直分隔線，創造無縫效果 */
 .td-main { border-right: none !important; }
-/* 箭頭欄：左右邊框都移除 */
 .td-arrow { border-left: none !important; border-right: none !important; }
-/* 變卦欄：左邊框移除 (但保留右邊框與納音區隔) */
 .td-change { border-left: none !important; }
 
 /* 標題列 */
@@ -90,7 +87,6 @@ input.st-ai, input.st-ah, input {
     background-color: #000; 
 }
 
-/* 變卦的爻條 (淡化處理或保持一致，此處保持一致黑) */
 .bar-yang-c { background-color: #000; }
 .bar-yin-c::before, .bar-yin-c::after { background-color: #000; }
 
@@ -117,6 +113,26 @@ input.st-ai, input.st-ah, input {
     font-size: 1.1em;
     display: block;
     margin-bottom: 5px;
+}
+
+/* 側邊欄指南樣式 */
+.sidebar-guide {
+    font-size: 0.9em;
+    line-height: 1.5;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #ccc;
+    color: #333;
+}
+.sidebar-guide h3 {
+    font-size: 1.1em;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #000;
+}
+.sidebar-guide strong {
+    font-weight: bold;
+    color: #000;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -160,7 +176,7 @@ TRIGRAMS = {
     "坤": {"code": [0, 0, 0], "element": "土", "stems": ["乙", "癸"], "branches": ["未", "巳", "卯", "丑", "亥", "酉"]},
 }
 
-# 64卦全名資料 (宮位, 世爻位置)
+# 64卦全名資料
 HEX_INFO = {
     "乾為天": ("乾", 6), "天風姤": ("乾", 1), "天山遯": ("乾", 2), "天地否": ("乾", 3), "風地觀": ("乾", 4), "山地剝": ("乾", 5), "火地晉": ("乾", 7), "火天大有": ("乾", 8),
     "坎為水": ("坎", 6), "水澤節": ("坎", 1), "水雷屯": ("坎", 2), "水火既濟": ("坎", 3), "澤火革": ("坎", 4), "雷火豐": ("坎", 5), "地火明夷": ("坎", 7), "地水師": ("坎", 8),
@@ -172,15 +188,12 @@ HEX_INFO = {
     "兌為澤": ("兌", 6), "澤水困": ("兌", 1), "澤地萃": ("兌", 2), "澤山咸": ("兌", 3), "水山蹇": ("兌", 4), "地山謙": ("兌", 5), "雷山小過": ("兌", 7), "雷澤歸妹": ("兌", 8),
 }
 
-# [新增] 卦名簡稱映射表 (User 輸入 "需" -> 查找 "水天需")
+# 卦名簡稱映射表
 SHORT_NAME_MAP = {}
 for full_name in HEX_INFO.keys():
-    # 邏輯：取全名最後一個字為簡稱 (大部分情況)
     short_name = full_name[-1] 
-    
-    # 特殊處理雙字卦名
     if full_name in ["大有", "同人", "大畜", "小畜", "無妄", "大壯", "大過", "未濟", "既濟"]:
-        short_name = full_name # 這些通常就直接叫全名，或需要特殊對應
+        short_name = full_name
     elif full_name == "火天大有": short_name = "大有"
     elif full_name == "天火同人": short_name = "同人"
     elif full_name == "山天大畜": short_name = "大畜"
@@ -190,14 +203,11 @@ for full_name in HEX_INFO.keys():
     elif full_name == "澤風大過": short_name = "大過"
     elif full_name == "火水未濟": short_name = "未濟"
     elif full_name == "水火既濟": short_name = "既濟"
-    
-    # 處理八純卦 (乾為天 -> 乾)
     if "為" in full_name:
         short_name = full_name[0]
-        
     SHORT_NAME_MAP[short_name] = full_name
 
-# 神煞表 (簡化用於代碼)
+# 神煞表
 STAR_A_TABLE = {"子": ("未", "亥"), "丑": ("未", "子"), "寅": ("戌", "丑"), "卯": ("戌", "寅"), "辰": ("戌", "卯"), "巳": ("丑", "辰"), "午": ("丑", "巳"), "未": ("丑", "午"), "申": ("辰", "未"), "酉": ("辰", "申"), "戌": ("辰", "酉"), "亥": ("未", "戌")}
 STAR_B_TABLE = {"甲": ("寅", "卯", "巳", "丑、未"), "乙": ("卯", "寅", "午", "申、子"), "丙": ("巳", "午", "申", "酉、亥"), "丁": ("午", "巳", "酉", "酉、亥"), "戊": ("巳", "午", "申", "丑、未"), "己": ("午", "巳", "酉", "申、子"), "庚": ("申", "酉", "亥", "寅、午"), "辛": ("酉", "申", "子", "寅、午"), "壬": ("亥", "子", "寅", "卯、巳"), "癸": ("子", "亥", "卯", "卯、巳")}
 STAR_C_TABLE = {"子": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "丑": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "寅": ("卯", "辰", "午", "申", "戌", "亥", "子"), "卯": ("子", "丑", "卯", "巳", "未", "申", "酉"), "辰": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "巳": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "午": ("卯", "辰", "午", "申", "戌", "亥", "子"), "未": ("子", "丑", "卯", "巳", "未", "申", "酉"), "申": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "酉": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "戌": ("卯", "辰", "午", "申", "戌", "亥", "子"), "亥": ("子", "丑", "卯", "巳", "未", "申", "酉")}
@@ -222,7 +232,6 @@ BRANCH_ELEMENTS = {
 # ==============================================================================
 
 def get_hexagram_name_by_code(upper, lower):
-    # 用於反查卦碼
     lookup = {}
     lookup[("乾", "乾")] = "乾為天"; lookup[("乾", "巽")] = "天風姤"; lookup[("乾", "艮")] = "天山遯"; lookup[("乾", "坤")] = "天地否"
     lookup[("巽", "坤")] = "風地觀"; lookup[("艮", "坤")] = "山地剝"; lookup[("離", "坤")] = "火地晉"; lookup[("離", "乾")] = "火天大有"
@@ -244,13 +253,19 @@ def get_hexagram_name_by_code(upper, lower):
 
 def get_code_from_name(name):
     """
-    輸入「需」或「水天需」，返回 6爻列表 (由下至上, 0陰1陽)
+    支援全名與簡稱:
+    輸入「需」-> 映射為「水天需」-> 返回 6爻列表
+    輸入「水天需」-> 直接返回 6爻列表
     """
-    full_name = SHORT_NAME_MAP.get(name, name)
-    if full_name not in HEX_INFO:
+    name = name.strip()
+    if name in HEX_INFO:
+        full_name = name
+    elif name in SHORT_NAME_MAP:
+        full_name = SHORT_NAME_MAP[name]
+    else:
         return None
     
-    # 暴力反查: 遍歷所有上下卦組合找到對應名稱
+    # 暴力反查
     tri_names = list(TRIGRAMS.keys())
     target_upper = ""
     target_lower = ""
@@ -267,8 +282,6 @@ def get_code_from_name(name):
         
     if not found: return None
     
-    # TRIGRAMS code 是 [下, 中, 上]
-    # 組合後 6爻 是 [下卦下, 下卦中, 下卦上, 上卦下, 上卦中, 上卦上]
     lower_code = TRIGRAMS[target_lower]["code"]
     upper_code = TRIGRAMS[target_upper]["code"]
     return lower_code + upper_code
@@ -332,7 +345,6 @@ def calculate_hexagram(numbers, day_stem, day_branch):
     if c_shift == 7: c_attributes.append("遊魂")
     if c_shift == 8: c_attributes.append("歸魂")
     
-    # 計算伏神
     base_lines = []
     for i in range(6):
         is_outer = i >= 3
@@ -448,26 +460,21 @@ with st.sidebar:
             val = cols[i].number_input(f"爻{i+1}", 6, 9, def_vals[i], key=f"n{i}")
             input_vals.append(val)
     else:
-        # [需求 3] 增加直接填寫主卦與變卦的卦名
+        # [更新] 支援全名與簡稱
         col_m, col_c = st.columns(2)
-        main_hex_input = col_m.text_input("主卦 (如:需)", "")
+        main_hex_input = col_m.text_input("主卦 (必填)", "")
         change_hex_input = col_c.text_input("變卦 (選填)", "")
         
         if main_hex_input:
             m_code = get_code_from_name(main_hex_input)
             if m_code:
-                c_code = m_code # 預設無變動
+                c_code = m_code 
                 if change_hex_input:
                     temp_c = get_code_from_name(change_hex_input)
                     if temp_c:
                         c_code = temp_c
                 
-                # 比對 m_code 與 c_code 產生 6,7,8,9
-                # 0=陰, 1=陽
-                # 主0變0 -> 8(少陰)
-                # 主1變1 -> 7(少陽)
-                # 主0變1 -> 6(老陰)
-                # 主1變0 -> 9(老陽)
+                # 自動推算數字
                 for i in range(6):
                     m = m_code[i]
                     c = c_code[i]
@@ -476,15 +483,32 @@ with st.sidebar:
                     elif m == 0 and c == 1: input_vals.append(6)
                     elif m == 1 and c == 0: input_vals.append(9)
             else:
-                st.error("找不到主卦名稱，請確認輸入(例如: 需, 乾, 大有)")
+                st.error("找不到主卦名稱，請確認輸入(例如: 需, 水天需)")
         else:
-            # 預設
             input_vals = [7,7,7,7,7,7]
+
+    # [更新] 新增操作指南區塊
+    st.markdown("---")
+    st.markdown("""
+<div class="sidebar-guide">
+    <h3>📥 起卦操作指南 (三錢法)</h3>
+    <p><strong>【基本操作】</strong><br>
+    準備：使用 3 枚錢幣，共擲 6 次。<br>
+    順序：由下往上（初爻、二爻...至上爻）。</p>
+    <p><strong>【分值定義】</strong><br>
+    正 (2分)：簡單面<br>
+    反 (3分)：繁雜面</p>
+    <p><strong>【判定對照】</strong><br>
+    7 分 (一反兩正)：記做「單」，少陽 ⚊<br>
+    8 分 (一正兩反)：記做「拆」，少陰 ⚋<br>
+    9 分 (三個反面)：記做「重」，老陽 ⚊ (變爻)<br>
+    6 分 (三個正面)：記做「交」，老陰 ⚋ (變爻)</p>
+</div>
+""", unsafe_allow_html=True)
 
     btn = st.button("排盤", type="primary")
 
 if btn or True:
-    # 若輸入不足 6 個數 (例如無卦名輸入時)，補齊預設
     if len(input_vals) < 6: input_vals = [7,7,7,7,7,7]
         
     m_name, c_name, palace, lines_data, p_el, m_attrs, c_attrs, c_palace = calculate_hexagram(input_vals, day_stem, day_branch)
@@ -509,10 +533,8 @@ if btn or True:
     stars_row1_str = "，".join(star_list_row1)
     stars_row2_str = "，".join(star_list_row2)
 
-    # 1. 頂部問題
     question_html = f"""<div style="font-size:1.2em; font-weight:bold; margin-bottom:10px; border-bottom:1px solid #000; padding-bottom:5px;">問題：{question_input if question_input else "（未輸入）"}</div>"""
 
-    # 2. 資訊區塊
     info_html = f"""<div class="info-box">
 <div style="text-align:center; font-size:1.1em; font-weight:bold; margin-bottom:10px;">
 <span>{gz_year}</span> 年 
@@ -527,7 +549,6 @@ if btn or True:
 </div>
 </div>"""
 
-    # 3. 準備標題字串
     def make_tags_str(attr_list):
         if not attr_list: return ""
         tags = ""
@@ -544,11 +565,6 @@ if btn or True:
     else:
         c_header_content = f"""<span class="hex-title-text">&nbsp;</span><span>【變卦】</span>"""
 
-    # 4. 表格建構
-    # [需求 1] 新增中間箭頭欄位
-    # [需求 2] 移除中間分隔線 -> Class td-main, td-arrow, td-change
-    # 欄位佔比調整: 箭頭欄給 8%
-    
     table_html = f"""<table class="hex-table">
 <tr class="header-row">
 <td width="6%">六神</td>
@@ -567,7 +583,6 @@ if btn or True:
         
         m_bar_cls = "bar-yang" if m["type"] == "yang" else "bar-yin"
         
-        # [需求 1 & 4] 箭頭移至獨立欄位
         move_indicator = ""
         if line["move"]:
             if m["type"] == "yang":
@@ -587,14 +602,12 @@ if btn or True:
 </div>"""
              c_nayin_short = c["nayin"][-3:] if c["nayin"] else ""
 
-        # 主卦圖示 Cell (不含箭頭了)
         main_cell = f"""<div style="display:flex; align-items:center; justify-content:center; gap:5px;">
 <div style="text-align:right; min-width:55px;">{m['rel']}{m['branch']}{m['el']}</div>
 <div class="{m_bar_cls}"></div>
 <div style="text-align:left; width:25px; color:#000; font-weight:bold; font-size:0.9em;">{m['shiying']}</div>
 </div>"""
 
-        # Row 組合
         row = f"""<tr>
 <td class="small-text">{line['god']}</td>
 <td class="small-text" style="font-size:0.85em;">{line['hidden']}</td>

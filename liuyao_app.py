@@ -3,9 +3,9 @@ import datetime
 from lunar_python import Solar, Lunar
 
 # ==============================================================================
-# 0. 網頁設定 & CSS (視覺優化：全黑白 + 寬版爻條 + 版面重構)
+# 0. 網頁設定 & CSS (視覺優化：無縫表格 + 獨立箭頭欄)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-黑白專業版v6", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-黑白專業版v7", layout="wide")
 
 st.markdown("""
 <style>
@@ -18,7 +18,7 @@ body, html, .stApp {
     color: #000000 !important;
 }
 
-/* 輸入框強制白底黑字 */
+/* 輸入框設定 */
 div[data-baseweb="input"] > div {
     background-color: #ffffff !important;
     border-color: #000000 !important;
@@ -30,11 +30,8 @@ input.st-ai, input.st-ah, input {
     background-color: #ffffff !important;
     caret-color: #000000 !important;
 }
-label[data-baseweb="label"] {
-    color: #000000 !important;
-}
 
-/* 表格樣式 */
+/* 表格基本架構 */
 .hex-table { 
     width: 100%; 
     border-collapse: collapse; 
@@ -44,15 +41,24 @@ label[data-baseweb="label"] {
     border: 2px solid #000; 
     margin-top: 10px;
 }
+
 .hex-table td { 
-    padding: 8px 4px; /* 增加一點內距 */
+    padding: 8px 2px;
     border-bottom: 1px solid #000; 
-    border-right: 1px solid #000;
+    border-right: 1px solid #000; /* 預設右邊框 */
     vertical-align: middle; 
     color: #000; 
 }
 .hex-table tr:last-child td { border-bottom: none; }
 .hex-table td:last-child { border-right: none; }
+
+/* [更新 2] 移除特定欄位的垂直分隔線，創造無縫效果 */
+/* 主卦欄：右邊框移除 */
+.td-main { border-right: none !important; }
+/* 箭頭欄：左右邊框都移除 */
+.td-arrow { border-left: none !important; border-right: none !important; }
+/* 變卦欄：左邊框移除 (但保留右邊框與納音區隔) */
+.td-change { border-left: none !important; }
 
 /* 標題列 */
 .header-row td { 
@@ -60,17 +66,16 @@ label[data-baseweb="label"] {
     font-weight: bold; 
     color: #000; 
     border-bottom: 2px solid #000; 
-    vertical-align: bottom !important; /* 讓標題文字靠下 */
+    vertical-align: bottom !important; 
     padding-bottom: 10px;
 }
 
-/* [更新 3] 爻條樣式：寬度加倍 (50px -> 100px) */
+/* 爻條樣式 */
 .bar-yang { 
     display: inline-block; 
     width: 100px; 
     height: 14px; 
     background-color: #000; 
-    border-radius: 0px; 
 }
 .bar-yin { 
     display: inline-flex; 
@@ -80,13 +85,12 @@ label[data-baseweb="label"] {
 }
 .bar-yin::before, .bar-yin::after { 
     content: ""; 
-    width: 42px; /* (100 - 16gap)/2 = 42 */
+    width: 42px; 
     height: 100%; 
     background-color: #000; 
-    border-radius: 0px; 
 }
 
-/* 變卦的爻條 (樣式相同) */
+/* 變卦的爻條 (淡化處理或保持一致，此處保持一致黑) */
 .bar-yang-c { background-color: #000; }
 .bar-yin-c::before, .bar-yin-c::after { background-color: #000; }
 
@@ -114,15 +118,11 @@ label[data-baseweb="label"] {
     display: block;
     margin-bottom: 5px;
 }
-.hex-label {
-    font-size: 0.9em;
-    display: block;
-}
 </style>
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 1. 核心資料庫
+# 1. 核心資料庫與映射表
 # ==============================================================================
 
 HEAVENLY_STEMS = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"]
@@ -134,52 +134,21 @@ LIU_SHEN_START = {
     "己": 3, "庚": 4, "辛": 4, "壬": 5, "癸": 5
 }
 
-STAR_A_TABLE = {
-    "子": ("未", "亥"), "丑": ("未", "子"), "寅": ("戌", "丑"), 
-    "卯": ("戌", "寅"), "辰": ("戌", "卯"), "巳": ("丑", "辰"), 
-    "午": ("丑", "巳"), "未": ("丑", "午"), "申": ("辰", "未"), 
-    "酉": ("辰", "申"), "戌": ("辰", "酉"), "亥": ("未", "戌")
-}
-STAR_B_TABLE = {
-    "甲": ("寅", "卯", "巳", "丑、未"), "乙": ("卯", "寅", "午", "申、子"), 
-    "丙": ("巳", "午", "申", "酉、亥"), "丁": ("午", "巳", "酉", "酉、亥"), 
-    "戊": ("巳", "午", "申", "丑、未"), "己": ("午", "巳", "酉", "申、子"), 
-    "庚": ("申", "酉", "亥", "寅、午"), "辛": ("酉", "申", "子", "寅、午"), 
-    "壬": ("亥", "子", "寅", "卯、巳"), "癸": ("子", "亥", "卯", "卯、巳")
-}
-STAR_C_TABLE = {
-    "子": ("酉", "戌", "子", "寅", "辰", "巳", "午"),
-    "丑": ("午", "未", "酉", "亥", "丑", "寅", "卯"),
-    "寅": ("卯", "辰", "午", "申", "戌", "亥", "子"),
-    "卯": ("子", "丑", "卯", "巳", "未", "申", "酉"),
-    "辰": ("酉", "戌", "子", "寅", "辰", "巳", "午"),
-    "巳": ("午", "未", "酉", "亥", "丑", "寅", "卯"),
-    "午": ("卯", "辰", "午", "申", "戌", "亥", "子"),
-    "未": ("子", "丑", "卯", "巳", "未", "申", "酉"),
-    "申": ("酉", "戌", "子", "寅", "辰", "巳", "午"),
-    "酉": ("午", "未", "酉", "亥", "丑", "寅", "卯"),
-    "戌": ("卯", "辰", "午", "申", "戌", "亥", "子"),
-    "亥": ("子", "丑", "卯", "巳", "未", "申", "酉")
-}
-
+# 納音表
 NAYIN_TABLE = {
-    "甲子": "海中金", "乙丑": "海中金", "丙寅": "爐中火", "丁卯": "爐中火",
-    "戊辰": "大林木", "己巳": "大林木", "庚午": "路旁土", "辛未": "路旁土",
-    "壬申": "劍鋒金", "癸酉": "劍鋒金", "甲戌": "山頭火", "乙亥": "山頭火",
-    "丙子": "澗下水", "丁丑": "澗下水", "戊寅": "城頭土", "己卯": "城頭土",
-    "庚辰": "白蠟金", "辛巳": "白蠟金", "壬午": "楊柳木", "癸未": "楊柳木",
-    "甲申": "井泉水", "乙酉": "井泉水", "丙戌": "屋上土", "丁亥": "屋上土",
-    "戊子": "霹靂火", "己丑": "霹靂火", "庚寅": "松柏木", "辛卯": "松柏木",
-    "壬辰": "長流水", "癸巳": "長流水", "甲午": "沙中金", "乙未": "沙中金",
-    "丙申": "山下火", "丁酉": "山下火", "戊戌": "平地木", "己亥": "平地木",
-    "庚子": "壁上土", "辛丑": "壁上土", "壬寅": "金箔金", "癸卯": "金箔金",
-    "甲辰": "佛燈火", "乙巳": "佛燈火", "丙午": "天河水", "丁未": "天河水",
-    "戊申": "大驛土", "己酉": "大驛土", "庚戌": "釵釧金", "辛亥": "釵釧金",
-    "壬子": "桑柘木", "癸丑": "桑柘木", "甲寅": "大溪水", "乙卯": "大溪水",
-    "丙辰": "沙中土", "丁巳": "沙中土", "戊午": "天上火", "己未": "天上火",
-    "庚申": "石榴木", "辛酉": "石榴木", "壬戌": "大海水", "癸亥": "大海水"
+    "甲子": "海中金", "乙丑": "海中金", "丙寅": "爐中火", "丁卯": "爐中火", "戊辰": "大林木", "己巳": "大林木", 
+    "庚午": "路旁土", "辛未": "路旁土", "壬申": "劍鋒金", "癸酉": "劍鋒金", "甲戌": "山頭火", "乙亥": "山頭火",
+    "丙子": "澗下水", "丁丑": "澗下水", "戊寅": "城頭土", "己卯": "城頭土", "庚辰": "白蠟金", "辛巳": "白蠟金", 
+    "壬午": "楊柳木", "癸未": "楊柳木", "甲申": "井泉水", "乙酉": "井泉水", "丙戌": "屋上土", "丁亥": "屋上土",
+    "戊子": "霹靂火", "己丑": "霹靂火", "庚寅": "松柏木", "辛卯": "松柏木", "壬辰": "長流水", "癸巳": "長流水", 
+    "甲午": "沙中金", "乙未": "沙中金", "丙申": "山下火", "丁酉": "山下火", "戊戌": "平地木", "己亥": "平地木",
+    "庚子": "壁上土", "辛丑": "壁上土", "壬寅": "金箔金", "癸卯": "金箔金", "甲辰": "佛燈火", "乙巳": "佛燈火", 
+    "丙午": "天河水", "丁未": "天河水", "戊申": "大驛土", "己酉": "大驛土", "庚戌": "釵釧金", "辛亥": "釵釧金",
+    "壬子": "桑柘木", "癸丑": "桑柘木", "甲寅": "大溪水", "乙卯": "大溪水", "丙辰": "沙中土", "丁巳": "沙中土", 
+    "戊午": "天上火", "己未": "天上火", "庚申": "石榴木", "辛酉": "石榴木", "壬戌": "大海水", "癸亥": "大海水"
 }
 
+# 八卦基礎
 TRIGRAMS = {
     "乾": {"code": [1, 1, 1], "element": "金", "stems": ["甲", "壬"], "branches": ["子", "寅", "辰", "午", "申", "戌"]},
     "兌": {"code": [0, 1, 1], "element": "金", "stems": ["丁", "丁"], "branches": ["巳", "卯", "丑", "亥", "酉", "未"]},
@@ -191,24 +160,47 @@ TRIGRAMS = {
     "坤": {"code": [0, 0, 0], "element": "土", "stems": ["乙", "癸"], "branches": ["未", "巳", "卯", "丑", "亥", "酉"]},
 }
 
+# 64卦全名資料 (宮位, 世爻位置)
 HEX_INFO = {
-    "乾為天": ("乾", 6), "天風姤": ("乾", 1), "天山遯": ("乾", 2), "天地否": ("乾", 3),
-    "風地觀": ("乾", 4), "山地剝": ("乾", 5), "火地晉": ("乾", 7), "火天大有": ("乾", 8),
-    "坎為水": ("坎", 6), "水澤節": ("坎", 1), "水雷屯": ("坎", 2), "水火既濟": ("坎", 3),
-    "澤火革": ("坎", 4), "雷火豐": ("坎", 5), "地火明夷": ("坎", 7), "地水師": ("坎", 8),
-    "艮為山": ("艮", 6), "山火賁": ("艮", 1), "山天大畜": ("艮", 2), "山澤損": ("艮", 3),
-    "火澤睽": ("艮", 4), "天澤履": ("艮", 5), "風澤中孚": ("艮", 7), "風山漸": ("艮", 8),
-    "震為雷": ("震", 6), "雷地豫": ("震", 1), "雷水解": ("震", 2), "雷風恆": ("震", 3),
-    "地風升": ("震", 4), "水風井": ("震", 5), "澤風大過": ("震", 7), "澤雷隨": ("震", 8),
-    "巽為風": ("巽", 6), "風天小畜": ("巽", 1), "風火家人": ("巽", 2), "風雷益": ("巽", 3),
-    "天雷無妄": ("巽", 4), "火雷噬嗑": ("巽", 5), "山雷頤": ("巽", 7), "山風蠱": ("巽", 8),
-    "離為火": ("離", 6), "火山旅": ("離", 1), "火風鼎": ("離", 2), "火水未濟": ("離", 3),
-    "山水蒙": ("離", 4), "風水渙": ("離", 5), "天水訟": ("離", 7), "天火同人": ("離", 8),
-    "坤為地": ("坤", 6), "地雷復": ("坤", 1), "地澤臨": ("坤", 2), "地天泰": ("坤", 3),
-    "雷天大壯": ("坤", 4), "澤天夬": ("坤", 5), "水天需": ("坤", 7), "水地比": ("坤", 8),
-    "兌為澤": ("兌", 6), "澤水困": ("兌", 1), "澤地萃": ("兌", 2), "澤山咸": ("兌", 3),
-    "水山蹇": ("兌", 4), "地山謙": ("兌", 5), "雷山小過": ("兌", 7), "雷澤歸妹": ("兌", 8),
+    "乾為天": ("乾", 6), "天風姤": ("乾", 1), "天山遯": ("乾", 2), "天地否": ("乾", 3), "風地觀": ("乾", 4), "山地剝": ("乾", 5), "火地晉": ("乾", 7), "火天大有": ("乾", 8),
+    "坎為水": ("坎", 6), "水澤節": ("坎", 1), "水雷屯": ("坎", 2), "水火既濟": ("坎", 3), "澤火革": ("坎", 4), "雷火豐": ("坎", 5), "地火明夷": ("坎", 7), "地水師": ("坎", 8),
+    "艮為山": ("艮", 6), "山火賁": ("艮", 1), "山天大畜": ("艮", 2), "山澤損": ("艮", 3), "火澤睽": ("艮", 4), "天澤履": ("艮", 5), "風澤中孚": ("艮", 7), "風山漸": ("艮", 8),
+    "震為雷": ("震", 6), "雷地豫": ("震", 1), "雷水解": ("震", 2), "雷風恆": ("震", 3), "地風升": ("震", 4), "水風井": ("震", 5), "澤風大過": ("震", 7), "澤雷隨": ("震", 8),
+    "巽為風": ("巽", 6), "風天小畜": ("巽", 1), "風火家人": ("巽", 2), "風雷益": ("巽", 3), "天雷無妄": ("巽", 4), "火雷噬嗑": ("巽", 5), "山雷頤": ("巽", 7), "山風蠱": ("巽", 8),
+    "離為火": ("離", 6), "火山旅": ("離", 1), "火風鼎": ("離", 2), "火水未濟": ("離", 3), "山水蒙": ("離", 4), "風水渙": ("離", 5), "天水訟": ("離", 7), "天火同人": ("離", 8),
+    "坤為地": ("坤", 6), "地雷復": ("坤", 1), "地澤臨": ("坤", 2), "地天泰": ("坤", 3), "雷天大壯": ("坤", 4), "澤天夬": ("坤", 5), "水天需": ("坤", 7), "水地比": ("坤", 8),
+    "兌為澤": ("兌", 6), "澤水困": ("兌", 1), "澤地萃": ("兌", 2), "澤山咸": ("兌", 3), "水山蹇": ("兌", 4), "地山謙": ("兌", 5), "雷山小過": ("兌", 7), "雷澤歸妹": ("兌", 8),
 }
+
+# [新增] 卦名簡稱映射表 (User 輸入 "需" -> 查找 "水天需")
+SHORT_NAME_MAP = {}
+for full_name in HEX_INFO.keys():
+    # 邏輯：取全名最後一個字為簡稱 (大部分情況)
+    short_name = full_name[-1] 
+    
+    # 特殊處理雙字卦名
+    if full_name in ["大有", "同人", "大畜", "小畜", "無妄", "大壯", "大過", "未濟", "既濟"]:
+        short_name = full_name # 這些通常就直接叫全名，或需要特殊對應
+    elif full_name == "火天大有": short_name = "大有"
+    elif full_name == "天火同人": short_name = "同人"
+    elif full_name == "山天大畜": short_name = "大畜"
+    elif full_name == "風天小畜": short_name = "小畜"
+    elif full_name == "天雷無妄": short_name = "無妄"
+    elif full_name == "雷天大壯": short_name = "大壯"
+    elif full_name == "澤風大過": short_name = "大過"
+    elif full_name == "火水未濟": short_name = "未濟"
+    elif full_name == "水火既濟": short_name = "既濟"
+    
+    # 處理八純卦 (乾為天 -> 乾)
+    if "為" in full_name:
+        short_name = full_name[0]
+        
+    SHORT_NAME_MAP[short_name] = full_name
+
+# 神煞表 (簡化用於代碼)
+STAR_A_TABLE = {"子": ("未", "亥"), "丑": ("未", "子"), "寅": ("戌", "丑"), "卯": ("戌", "寅"), "辰": ("戌", "卯"), "巳": ("丑", "辰"), "午": ("丑", "巳"), "未": ("丑", "午"), "申": ("辰", "未"), "酉": ("辰", "申"), "戌": ("辰", "酉"), "亥": ("未", "戌")}
+STAR_B_TABLE = {"甲": ("寅", "卯", "巳", "丑、未"), "乙": ("卯", "寅", "午", "申、子"), "丙": ("巳", "午", "申", "酉、亥"), "丁": ("午", "巳", "酉", "酉、亥"), "戊": ("巳", "午", "申", "丑、未"), "己": ("午", "巳", "酉", "申、子"), "庚": ("申", "酉", "亥", "寅、午"), "辛": ("酉", "申", "子", "寅、午"), "壬": ("亥", "子", "寅", "卯、巳"), "癸": ("子", "亥", "卯", "卯、巳")}
+STAR_C_TABLE = {"子": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "丑": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "寅": ("卯", "辰", "午", "申", "戌", "亥", "子"), "卯": ("子", "丑", "卯", "巳", "未", "申", "酉"), "辰": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "巳": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "午": ("卯", "辰", "午", "申", "戌", "亥", "子"), "未": ("子", "丑", "卯", "巳", "未", "申", "酉"), "申": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "酉": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "戌": ("卯", "辰", "午", "申", "戌", "亥", "子"), "亥": ("子", "丑", "卯", "巳", "未", "申", "酉")}
 
 SIX_CLASH_HEX = ["乾為天", "坎為水", "艮為山", "震為雷", "巽為風", "離為火", "坤為地", "兌為澤", "天雷無妄", "雷天大壯"]
 SIX_HARMONY_HEX = ["天地否", "地天泰", "地雷復", "雷地豫", "水澤節", "澤水困", "山火賁", "火山旅"]
@@ -230,6 +222,7 @@ BRANCH_ELEMENTS = {
 # ==============================================================================
 
 def get_hexagram_name_by_code(upper, lower):
+    # 用於反查卦碼
     lookup = {}
     lookup[("乾", "乾")] = "乾為天"; lookup[("乾", "巽")] = "天風姤"; lookup[("乾", "艮")] = "天山遯"; lookup[("乾", "坤")] = "天地否"
     lookup[("巽", "坤")] = "風地觀"; lookup[("艮", "坤")] = "山地剝"; lookup[("離", "坤")] = "火地晉"; lookup[("離", "乾")] = "火天大有"
@@ -248,6 +241,37 @@ def get_hexagram_name_by_code(upper, lower):
     lookup[("兌", "兌")] = "兌為澤"; lookup[("兌", "坎")] = "澤水困"; lookup[("兌", "坤")] = "澤地萃"; lookup[("兌", "艮")] = "澤山咸"
     lookup[("坎", "艮")] = "水山蹇"; lookup[("坤", "艮")] = "地山謙"; lookup[("震", "艮")] = "雷山小過"; lookup[("震", "兌")] = "雷澤歸妹"
     return lookup.get((upper, lower), "未知")
+
+def get_code_from_name(name):
+    """
+    輸入「需」或「水天需」，返回 6爻列表 (由下至上, 0陰1陽)
+    """
+    full_name = SHORT_NAME_MAP.get(name, name)
+    if full_name not in HEX_INFO:
+        return None
+    
+    # 暴力反查: 遍歷所有上下卦組合找到對應名稱
+    tri_names = list(TRIGRAMS.keys())
+    target_upper = ""
+    target_lower = ""
+    
+    found = False
+    for up in tri_names:
+        for lo in tri_names:
+            if get_hexagram_name_by_code(up, lo) == full_name:
+                target_upper = up
+                target_lower = lo
+                found = True
+                break
+        if found: break
+        
+    if not found: return None
+    
+    # TRIGRAMS code 是 [下, 中, 上]
+    # 組合後 6爻 是 [下卦下, 下卦中, 下卦上, 上卦下, 上卦中, 上卦上]
+    lower_code = TRIGRAMS[target_lower]["code"]
+    upper_code = TRIGRAMS[target_upper]["code"]
+    return lower_code + upper_code
 
 def get_line_details(tri_name, line_idx, is_outer):
     branches = TRIGRAMS[tri_name]["branches"]
@@ -276,10 +300,10 @@ def calculate_hexagram(numbers, day_stem, day_branch):
             
     tri_map = {tuple(v["code"]): k for k, v in TRIGRAMS.items()}
     
-    m_lower_code = tuple(main_code[:3][::-1]) 
-    m_upper_code = tuple(main_code[3:][::-1])
-    c_lower_code = tuple(change_code[:3][::-1])
-    c_upper_code = tuple(change_code[3:][::-1])
+    m_lower_code = tuple(main_code[:3]) 
+    m_upper_code = tuple(main_code[3:])
+    c_lower_code = tuple(change_code[:3])
+    c_upper_code = tuple(change_code[3:])
     
     m_lower = tri_map.get(m_lower_code, "未知")
     m_upper = tri_map.get(m_upper_code, "未知")
@@ -308,6 +332,7 @@ def calculate_hexagram(numbers, day_stem, day_branch):
     if c_shift == 7: c_attributes.append("遊魂")
     if c_shift == 8: c_attributes.append("歸魂")
     
+    # 計算伏神
     base_lines = []
     for i in range(6):
         is_outer = i >= 3
@@ -410,17 +435,58 @@ with st.sidebar:
         
     st.write(f"當前：{gz_year}年 {gz_month}月 {gz_day}日 {gz_hour}時")
 
-    st.subheader("起卦 (由初爻至上爻)")
-    cols = st.columns(6)
+    st.subheader("起卦方式")
+    method = st.radio("模式", ["數字起卦", "卦名起卦"], horizontal=True)
+
     input_vals = []
-    def_vals = [7, 7, 7, 7, 7, 7]
-    for i in range(6):
-        val = cols[i].number_input(f"爻{i+1}", 6, 9, def_vals[i], key=f"n{i}")
-        input_vals.append(val)
     
+    if method == "數字起卦":
+        st.write("由初爻至上爻")
+        cols = st.columns(6)
+        def_vals = [7, 7, 7, 7, 7, 7]
+        for i in range(6):
+            val = cols[i].number_input(f"爻{i+1}", 6, 9, def_vals[i], key=f"n{i}")
+            input_vals.append(val)
+    else:
+        # [需求 3] 增加直接填寫主卦與變卦的卦名
+        col_m, col_c = st.columns(2)
+        main_hex_input = col_m.text_input("主卦 (如:需)", "")
+        change_hex_input = col_c.text_input("變卦 (選填)", "")
+        
+        if main_hex_input:
+            m_code = get_code_from_name(main_hex_input)
+            if m_code:
+                c_code = m_code # 預設無變動
+                if change_hex_input:
+                    temp_c = get_code_from_name(change_hex_input)
+                    if temp_c:
+                        c_code = temp_c
+                
+                # 比對 m_code 與 c_code 產生 6,7,8,9
+                # 0=陰, 1=陽
+                # 主0變0 -> 8(少陰)
+                # 主1變1 -> 7(少陽)
+                # 主0變1 -> 6(老陰)
+                # 主1變0 -> 9(老陽)
+                for i in range(6):
+                    m = m_code[i]
+                    c = c_code[i]
+                    if m == 0 and c == 0: input_vals.append(8)
+                    elif m == 1 and c == 1: input_vals.append(7)
+                    elif m == 0 and c == 1: input_vals.append(6)
+                    elif m == 1 and c == 0: input_vals.append(9)
+            else:
+                st.error("找不到主卦名稱，請確認輸入(例如: 需, 乾, 大有)")
+        else:
+            # 預設
+            input_vals = [7,7,7,7,7,7]
+
     btn = st.button("排盤", type="primary")
 
 if btn or True:
+    # 若輸入不足 6 個數 (例如無卦名輸入時)，補齊預設
+    if len(input_vals) < 6: input_vals = [7,7,7,7,7,7]
+        
     m_name, c_name, palace, lines_data, p_el, m_attrs, c_attrs, c_palace = calculate_hexagram(input_vals, day_stem, day_branch)
     
     has_moving = any(line["move"] for line in lines_data)
@@ -437,22 +503,8 @@ if btn or True:
     s_b = STAR_B_TABLE.get(day_stem, ("-", "-", "-", "-"))
     s_c = STAR_C_TABLE.get(day_branch, ("-", "-", "-", "-", "-", "-", "-"))
 
-    star_list_row1 = []
-    star_list_row1.append(f"天喜-{s_a[0]}")
-    star_list_row1.append(f"天醫-{s_a[1]}")
-    star_list_row1.append(f"祿神-{s_b[0]}")
-    star_list_row1.append(f"羊刃-{s_b[1]}")
-    star_list_row1.append(f"文昌-{s_b[2]}")
-    star_list_row1.append(f"貴人-{s_b[3]}")
-
-    star_list_row2 = []
-    star_list_row2.append(f"桃花-{s_c[0]}")
-    star_list_row2.append(f"謀星-{s_c[1]}")
-    star_list_row2.append(f"將星-{s_c[2]}")
-    star_list_row2.append(f"驛馬-{s_c[3]}")
-    star_list_row2.append(f"華蓋-{s_c[4]}")
-    star_list_row2.append(f"劫煞-{s_c[5]}")
-    star_list_row2.append(f"災煞-{s_c[6]}")
+    star_list_row1 = [f"天喜-{s_a[0]}", f"天醫-{s_a[1]}", f"祿神-{s_b[0]}", f"羊刃-{s_b[1]}", f"文昌-{s_b[2]}", f"貴人-{s_b[3]}"]
+    star_list_row2 = [f"桃花-{s_c[0]}", f"謀星-{s_c[1]}", f"將星-{s_c[2]}", f"驛馬-{s_c[3]}", f"華蓋-{s_c[4]}", f"劫煞-{s_c[5]}", f"災煞-{s_c[6]}"]
 
     stars_row1_str = "，".join(star_list_row1)
     stars_row2_str = "，".join(star_list_row2)
@@ -475,7 +527,7 @@ if btn or True:
 </div>
 </div>"""
 
-    # 3. 準備標題字串 (嵌入表格內)
+    # 3. 準備標題字串
     def make_tags_str(attr_list):
         if not attr_list: return ""
         tags = ""
@@ -487,25 +539,25 @@ if btn or True:
     m_header_content = f"""<span class="hex-title-text">{palace}宮：{m_name} {m_tags_str}</span><span>【主卦】</span>"""
     
     c_tags_str = make_tags_str(c_attrs)
-    # [需求 2] 變卦標題邏輯：若無動爻則不顯示卦名，只顯示【變卦】或者連標題都隱藏? 
-    # 這裡依照慣例，無動爻時變卦欄位空，但標題若留著會比較整齊。若有動爻才顯示卦名。
     if has_moving:
         c_header_content = f"""<span class="hex-title-text">{c_palace}宮：{c_name} {c_tags_str}</span><span>【變卦】</span>"""
     else:
         c_header_content = f"""<span class="hex-title-text">&nbsp;</span><span>【變卦】</span>"""
 
     # 4. 表格建構
-    # [需求 5] 欄位順序調整：主卦納音 移至 變卦右側 (變卦納音左側)
-    # 順序：六神 | 藏伏 | 主卦(含標題) | 變卦(含標題) | 主卦納音 | 變卦納音
+    # [需求 1] 新增中間箭頭欄位
+    # [需求 2] 移除中間分隔線 -> Class td-main, td-arrow, td-change
+    # 欄位佔比調整: 箭頭欄給 8%
     
     table_html = f"""<table class="hex-table">
 <tr class="header-row">
 <td width="6%">六神</td>
 <td width="6%">藏伏</td>
-<td width="30%">{m_header_content}</td>
-<td width="30%">{c_header_content}</td>
-<td width="14%" class="small-text">主卦納音</td>
-<td width="14%" class="small-text">變卦納音</td>
+<td width="27%" class="td-main">{m_header_content}</td>
+<td width="8%" class="td-arrow"></td>
+<td width="27%" class="td-change">{c_header_content}</td>
+<td width="13%" class="small-text">主卦納音</td>
+<td width="13%" class="small-text">變卦納音</td>
 </tr>"""
     
     for i in range(5, -1, -1):
@@ -515,13 +567,13 @@ if btn or True:
         
         m_bar_cls = "bar-yang" if m["type"] == "yang" else "bar-yin"
         
-        # [需求 4] 動爻箭頭
+        # [需求 1 & 4] 箭頭移至獨立欄位
         move_indicator = ""
         if line["move"]:
             if m["type"] == "yang":
-                move_indicator = '<span style="font-weight:bold; margin-left:8px;">O ---&gt;</span>'
+                move_indicator = '<span style="font-weight:bold;">O ---&gt;</span>'
             else:
-                move_indicator = '<span style="font-weight:bold; margin-left:8px;">X ---&gt;</span>'
+                move_indicator = '<span style="font-weight:bold;">X ---&gt;</span>'
         
         m_nayin_short = m["nayin"][-3:] if m["nayin"] else ""
         c_nayin_short = ""
@@ -529,26 +581,26 @@ if btn or True:
 
         if has_moving:
              c_bar_cls = "bar-yang bar-yang-c" if c["type"] == "yang" else "bar-yin bar-yin-c"
-             # 變卦圖示
              c_cell_content = f"""<div style="display:flex; align-items:center; justify-content:center; gap:5px;">
 <div class="{c_bar_cls}"></div>
 <div style="text-align:left; min-width:55px; color:#000;">{c['rel']}{c['branch']}{c['el']}</div>
 </div>"""
              c_nayin_short = c["nayin"][-3:] if c["nayin"] else ""
 
-        # 主卦圖示 Cell
+        # 主卦圖示 Cell (不含箭頭了)
         main_cell = f"""<div style="display:flex; align-items:center; justify-content:center; gap:5px;">
 <div style="text-align:right; min-width:55px;">{m['rel']}{m['branch']}{m['el']}</div>
 <div class="{m_bar_cls}"></div>
-<div style="text-align:left; width:60px; color:#000; font-weight:bold; font-size:0.9em; white-space:nowrap;">{m['shiying']} {move_indicator}</div>
+<div style="text-align:left; width:25px; color:#000; font-weight:bold; font-size:0.9em;">{m['shiying']}</div>
 </div>"""
 
-        # Row 組合 (依據新順序)
+        # Row 組合
         row = f"""<tr>
 <td class="small-text">{line['god']}</td>
 <td class="small-text" style="font-size:0.85em;">{line['hidden']}</td>
-<td>{main_cell}</td>
-<td>{c_cell_content}</td>
+<td class="td-main">{main_cell}</td>
+<td class="td-arrow">{move_indicator}</td>
+<td class="td-change">{c_cell_content}</td>
 <td class="small-text" style="font-size:0.85em;">{m_nayin_short}</td>
 <td class="small-text" style="font-size:0.85em;">{c_nayin_short}</td>
 </tr>"""

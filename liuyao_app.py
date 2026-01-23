@@ -3,9 +3,9 @@ import datetime
 from lunar_python import Solar, Lunar
 
 # ==============================================================================
-# 0. 網頁設定 & CSS (視覺優化：無縫表格 + 獨立箭頭欄 + 黑白風格)
+# 0. 網頁設定 & CSS (視覺優化：無縫表格 + 獨立箭頭欄 + 黑白風格 + 指南優化)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-黑白專業版v8", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-黑白專業版v9", layout="wide")
 
 st.markdown("""
 <style>
@@ -31,6 +31,20 @@ input.st-ai, input.st-ah, input {
     caret-color: #000000 !important;
 }
 
+/* 按鈕設定 (黑底白字，方角) */
+div.stButton > button {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    border: 1px solid #000000 !important;
+    border-radius: 0px !important;
+    font-weight: bold !important;
+    width: 100%;
+}
+div.stButton > button:hover {
+    background-color: #333333 !important;
+    color: #ffffff !important;
+}
+
 /* 表格基本架構 */
 .hex-table { 
     width: 100%; 
@@ -45,14 +59,14 @@ input.st-ai, input.st-ah, input {
 .hex-table td { 
     padding: 8px 2px;
     border-bottom: 1px solid #000; 
-    border-right: 1px solid #000; /* 預設右邊框 */
+    border-right: 1px solid #000; 
     vertical-align: middle; 
     color: #000; 
 }
 .hex-table tr:last-child td { border-bottom: none; }
 .hex-table td:last-child { border-right: none; }
 
-/* 移除特定欄位的垂直分隔線，創造無縫效果 */
+/* 移除特定欄位的垂直分隔線 */
 .td-main { border-right: none !important; }
 .td-arrow { border-left: none !important; border-right: none !important; }
 .td-change { border-left: none !important; }
@@ -115,24 +129,39 @@ input.st-ai, input.st-ah, input {
     margin-bottom: 5px;
 }
 
-/* 側邊欄指南樣式 */
-.sidebar-guide {
-    font-size: 0.9em;
-    line-height: 1.5;
+/* 側邊欄指南樣式 (白底黑字 + 階層) */
+.guide-box {
+    background-color: #ffffff;
+    border: 1px solid #000000;
+    padding: 15px;
     margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px solid #ccc;
-    color: #333;
+    color: #000000;
+    font-size: 0.95em;
+    line-height: 1.6;
 }
-.sidebar-guide h3 {
+.guide-header {
+    font-weight: bold;
     font-size: 1.1em;
-    font-weight: bold;
+    border-bottom: 2px solid #000;
+    padding-bottom: 5px;
     margin-bottom: 10px;
-    color: #000;
+    text-align: center;
 }
-.sidebar-guide strong {
+.guide-section-title {
     font-weight: bold;
-    color: #000;
+    margin-top: 10px;
+    margin-bottom: 5px;
+    background-color: #eee;
+    padding: 2px 5px;
+    display: inline-block;
+    border: 1px solid #ccc;
+}
+.guide-ul {
+    margin: 0;
+    padding-left: 20px;
+}
+.guide-li {
+    margin-bottom: 3px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -252,11 +281,6 @@ def get_hexagram_name_by_code(upper, lower):
     return lookup.get((upper, lower), "未知")
 
 def get_code_from_name(name):
-    """
-    支援全名與簡稱:
-    輸入「需」-> 映射為「水天需」-> 返回 6爻列表
-    輸入「水天需」-> 直接返回 6爻列表
-    """
     name = name.strip()
     if name in HEX_INFO:
         full_name = name
@@ -265,7 +289,6 @@ def get_code_from_name(name):
     else:
         return None
     
-    # 暴力反查
     tri_names = list(TRIGRAMS.keys())
     target_upper = ""
     target_lower = ""
@@ -460,7 +483,6 @@ with st.sidebar:
             val = cols[i].number_input(f"爻{i+1}", 6, 9, def_vals[i], key=f"n{i}")
             input_vals.append(val)
     else:
-        # [更新] 支援全名與簡稱
         col_m, col_c = st.columns(2)
         main_hex_input = col_m.text_input("主卦 (必填)", "")
         change_hex_input = col_c.text_input("變卦 (選填)", "")
@@ -487,26 +509,36 @@ with st.sidebar:
         else:
             input_vals = [7,7,7,7,7,7]
 
-    # [更新] 新增操作指南區塊
-    st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
+    # [更新] 按鈕移至此處
+    btn = st.button("排盤", type="primary")
+
+    # [更新] 操作指南區塊：白底黑字、階層化
     st.markdown("""
-<div class="sidebar-guide">
-    <h3>📥 起卦操作指南 (三錢法)</h3>
-    <p><strong>【基本操作】</strong><br>
-    準備：使用 3 枚錢幣，共擲 6 次。<br>
-    順序：由下往上（初爻、二爻...至上爻）。</p>
-    <p><strong>【分值定義】</strong><br>
-    正 (2分)：簡單面<br>
-    反 (3分)：繁雜面</p>
-    <p><strong>【判定對照】</strong><br>
-    7 分 (一反兩正)：記做「單」，少陽 ⚊<br>
-    8 分 (一正兩反)：記做「拆」，少陰 ⚋<br>
-    9 分 (三個反面)：記做「重」，老陽 ⚊ (變爻)<br>
-    6 分 (三個正面)：記做「交」，老陰 ⚋ (變爻)</p>
+<div class="guide-box">
+    <div class="guide-header">📥 起卦操作指南 (三錢法)</div>
+    
+    <div class="guide-section-title">【基本操作】</div>
+    <ul class="guide-ul">
+        <li class="guide-li"><b>準備</b>：使用 3 枚錢幣，共擲 6 次。</li>
+        <li class="guide-li"><b>順序</b>：由下往上（1爻、2爻...至6爻）。</li>
+    </ul>
+
+    <div class="guide-section-title">【分值定義】</div>
+    <ul class="guide-ul">
+        <li class="guide-li"><b>正 (2分)</b>：簡單面 (例如: 字面)</li>
+        <li class="guide-li"><b>反 (3分)</b>：繁雜面 (例如: 花色/人頭)</li>
+    </ul>
+
+    <div class="guide-section-title">【判定對照】</div>
+    <ul class="guide-ul">
+        <li class="guide-li"><b>7 分 (一反兩正)</b>：記做「單」，少陽 ⚊</li>
+        <li class="guide-li"><b>8 分 (一正兩反)</b>：記做「拆」，少陰 ⚋</li>
+        <li class="guide-li"><b>9 分 (三個反面)</b>：記做「重」，老陽 ⚊ (變爻)</li>
+        <li class="guide-li"><b>6 分 (三個正面)</b>：記做「交」，老陰 ⚋ (變爻)</li>
+    </ul>
 </div>
 """, unsafe_allow_html=True)
-
-    btn = st.button("排盤", type="primary")
 
 if btn or True:
     if len(input_vals) < 6: input_vals = [7,7,7,7,7,7]

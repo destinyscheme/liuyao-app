@@ -3,9 +3,9 @@ import datetime
 from lunar_python import Solar, Lunar
 
 # ==============================================================================
-# 0. 網頁設定 & CSS (視覺優化：全黑白 + 修正指南顯示)
+# 0. 網頁設定 & CSS (視覺優化：按鈕紅底白字 + 無縫表格)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-修正版v11", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-修正版v12", layout="wide")
 
 st.markdown("""
 <style>
@@ -34,18 +34,18 @@ label[data-baseweb="label"] {
     color: #000000 !important;
 }
 
-/* 按鈕設定 */
+/* [修正 2] 按鈕設定 (紅底白字) */
 div.stButton > button {
-    background-color: #000000 !important;
-    color: #ffffff !important;
-    border: 1px solid #000000 !important;
+    background-color: #d32f2f !important; /* 紅色背景 */
+    color: #ffffff !important;             /* 白色文字 */
+    border: 1px solid #d32f2f !important;
     border-radius: 0px !important;
     font-weight: bold !important;
     width: 100%;
     margin-bottom: 20px;
 }
 div.stButton > button:hover {
-    background-color: #333333 !important;
+    background-color: #b71c1c !important; /* 滑鼠懸停時更深紅 */
     color: #ffffff !important;
 }
 
@@ -83,7 +83,7 @@ div.stButton > button:hover {
     vertical-align: bottom !important;
 }
 
-/* 爻條樣式 (加長版) */
+/* 爻條樣式 */
 .bar-yang { display: inline-block; width: 100px; height: 14px; background-color: #000; }
 .bar-yin { display: inline-flex; width: 100px; height: 14px; justify-content: space-between; }
 .bar-yin::before, .bar-yin::after { content: ""; width: 42px; height: 100%; background-color: #000; }
@@ -96,7 +96,7 @@ div.stButton > button:hover {
 .attr-tag { font-size: 0.7em; border: 1px solid #000; padding: 1px 4px; margin-left: 5px; font-weight: normal; }
 .hex-title-text { font-size: 1.1em; display: block; margin-bottom: 5px; }
 
-/* 指南區塊樣式 (Markdown 容器) */
+/* 指南區塊樣式 */
 .guide-container {
     border-top: 1px solid #000;
     padding-top: 15px;
@@ -108,7 +108,7 @@ div.stButton > button:hover {
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 1. 核心資料庫 (Trigrams 邏輯修正)
+# 1. 核心資料庫
 # ==============================================================================
 
 HEAVENLY_STEMS = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"]
@@ -133,16 +133,15 @@ NAYIN_TABLE = {
     "戊午": "天上火", "己未": "天上火", "庚申": "石榴木", "辛酉": "石榴木", "壬戌": "大海水", "癸亥": "大海水"
 }
 
-# 【關鍵修正】八卦編碼：嚴格遵循「由下往上」順序 [初爻, 二爻, 三爻]
-# 1=陽, 0=陰
+# 八卦編碼 (由下往上：初爻, 二爻, 三爻)
 TRIGRAMS = {
     "乾": {"code": [1, 1, 1], "element": "金", "stems": ["甲", "壬"], "branches": ["子", "寅", "辰", "午", "申", "戌"]},
-    "兌": {"code": [1, 1, 0], "element": "金", "stems": ["丁", "丁"], "branches": ["巳", "卯", "丑", "亥", "酉", "未"]}, # 初陽, 二陽, 三陰 (澤)
+    "兌": {"code": [1, 1, 0], "element": "金", "stems": ["丁", "丁"], "branches": ["巳", "卯", "丑", "亥", "酉", "未"]}, 
     "離": {"code": [1, 0, 1], "element": "火", "stems": ["己", "己"], "branches": ["卯", "丑", "亥", "酉", "未", "巳"]},
-    "震": {"code": [1, 0, 0], "element": "木", "stems": ["庚", "庚"], "branches": ["子", "寅", "辰", "午", "申", "戌"]}, # 初陽, 二陰, 三陰 (雷)
-    "巽": {"code": [0, 1, 1], "element": "木", "stems": ["辛", "辛"], "branches": ["丑", "亥", "酉", "未", "巳", "卯"]}, # 初陰, 二陽, 三陽 (風)
+    "震": {"code": [1, 0, 0], "element": "木", "stems": ["庚", "庚"], "branches": ["子", "寅", "辰", "午", "申", "戌"]}, 
+    "巽": {"code": [0, 1, 1], "element": "木", "stems": ["辛", "辛"], "branches": ["丑", "亥", "酉", "未", "巳", "卯"]}, 
     "坎": {"code": [0, 1, 0], "element": "水", "stems": ["戊", "戊"], "branches": ["寅", "辰", "午", "申", "戌", "子"]},
-    "艮": {"code": [0, 0, 1], "element": "土", "stems": ["丙", "丙"], "branches": ["辰", "午", "申", "戌", "子", "寅"]}, # 初陰, 二陰, 三陽 (山)
+    "艮": {"code": [0, 0, 1], "element": "土", "stems": ["丙", "丙"], "branches": ["辰", "午", "申", "戌", "子", "寅"]}, 
     "坤": {"code": [0, 0, 0], "element": "土", "stems": ["乙", "癸"], "branches": ["未", "巳", "卯", "丑", "亥", "酉"]},
 }
 
@@ -362,7 +361,7 @@ def calculate_hexagram(numbers, day_stem, day_branch):
 
 with st.sidebar:
     st.header("設定")
-    question_input = st.text_input("輸入問題", placeholder="請輸入占卜問題...")
+    question_input = st.text_input("輸入問題", placeholder="請輸入占卜事項...")
     date_mode = st.radio("日期模式", ["自動 (Current)", "指定西曆", "手動干支"])
     
     gz_year, gz_month, gz_day, gz_hour = "", "", "", ""
@@ -414,7 +413,7 @@ with st.sidebar:
     input_vals = []
     
     if method == "數字起卦":
-        st.write("由下往上（由爻1至爻6）")
+        st.write("由初爻至上爻")
         cols = st.columns(6)
         def_vals = [7, 7, 7, 7, 7, 7]
         for i in range(6):
@@ -449,30 +448,36 @@ with st.sidebar:
 
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # 1. 按鈕位置調整至指南上方
+    # 按鈕位置
     btn = st.button("排盤", type="primary")
 
-    # 2. 指南修復：使用純 Markdown 呈現，避免 HTML 代碼外洩
+    # 指南修復：使用純 Markdown 呈現
     st.markdown("---")
     st.markdown("""
 ### 📥 起卦操作指南 (三錢法)
 
 **【基本操作】**
 * **準備**：使用 3 枚錢幣，共擲 6 次。
-* **順序**：由下往上（爻1、爻2...至爻6）。
+* **順序**：由下往上（1爻、2爻...至6爻）。
 
 **【分值定義】**
 * **正 (2分)**：簡單面 (例如: 字面)
-* **反 (3分)**：繁雜面 (例如: 花色)
+* **反 (3分)**：繁雜面 (例如: 花色/人頭)
 
 **【判定對照】**
-* **7 分 (一反兩正)**：少陽 ⚊
-* **8 分 (一正兩反)**：少陰 ⚋
-* **9 分 (三個反面)**：老陽 ⚊ (O--->)
-* **6 分 (三個正面)**：老陰 ⚋ (X--->)
+* **7 分 (一反兩正)**：記做「單」，少陽 ⚊
+* **8 分 (一正兩反)**：記做「拆」，少陰 ⚋
+* **9 分 (三個反面)**：記做「重」，老陽 ⚊ (變爻)
+* **6 分 (三個正面)**：記做「交」，老陰 ⚋ (變爻)
 """)
 
 if btn or True:
+    # [修正 1] 手動干支必填檢查與空值處理
+    if date_mode == "手動干支":
+        if not gz_month or not gz_day:
+            st.error("【錯誤】月柱與日柱為必填項目，請完整輸入干支（如：甲子）")
+            st.stop()
+
     if len(input_vals) < 6: input_vals = [7,7,7,7,7,7]
         
     m_name, c_name, palace, lines_data, p_el, m_attrs, c_attrs, c_palace = calculate_hexagram(input_vals, day_stem, day_branch)
@@ -499,13 +504,18 @@ if btn or True:
 
     question_html = f"""<div style="font-size:1.2em; font-weight:bold; margin-bottom:10px; border-bottom:1px solid #000; padding-bottom:5px;">問題：{question_input if question_input else "（未輸入）"}</div>"""
 
+    # [修正 1] 動態建構日期字串
+    date_parts = []
+    if gz_year: date_parts.append(f"<span>{gz_year}</span> 年")
+    date_parts.append(f"<span>{gz_month}</span> 月")
+    date_parts.append(f"<span>{gz_day}</span> 日")
+    if gz_hour: date_parts.append(f"<span>{gz_hour}</span> 時")
+    
+    date_html_str = " ".join(date_parts)
+
     info_html = f"""<div class="info-box">
 <div style="text-align:center; font-size:1.1em; font-weight:bold; margin-bottom:10px;">
-<span>{gz_year}</span> 年 
-<span>{gz_month}</span> 月 
-<span>{gz_day}</span> 日 
-<span>{gz_hour}</span> 時 
-&nbsp;&nbsp; (旬空: <span>{voids}</span>)
+{date_html_str} &nbsp;&nbsp; (旬空: <span>{voids}</span>)
 </div>
 <div style="font-size:0.95em; line-height:1.7; text-align:center;">
 {stars_row1_str}<br>

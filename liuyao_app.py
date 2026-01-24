@@ -3,9 +3,9 @@ import datetime
 from lunar_python import Solar, Lunar
 
 # ==============================================================================
-# 0. 網頁設定 & CSS (視覺優化：無縫表格 + 獨立箭頭欄 + 黑白風格 + 指南優化)
+# 0. 網頁設定 & CSS (白底黑字 + 專業排版)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-黑白專業版v9", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-修正版v10", layout="wide")
 
 st.markdown("""
 <style>
@@ -18,7 +18,7 @@ body, html, .stApp {
     color: #000000 !important;
 }
 
-/* 輸入框設定 */
+/* 輸入框優化 */
 div[data-baseweb="input"] > div {
     background-color: #ffffff !important;
     border-color: #000000 !important;
@@ -31,7 +31,7 @@ input.st-ai, input.st-ah, input {
     caret-color: #000000 !important;
 }
 
-/* 按鈕設定 (黑底白字，方角) */
+/* 按鈕設定 */
 div.stButton > button {
     background-color: #000000 !important;
     color: #ffffff !important;
@@ -39,13 +39,14 @@ div.stButton > button {
     border-radius: 0px !important;
     font-weight: bold !important;
     width: 100%;
+    margin-bottom: 20px;
 }
 div.stButton > button:hover {
     background-color: #333333 !important;
     color: #ffffff !important;
 }
 
-/* 表格基本架構 */
+/* 表格樣式 */
 .hex-table { 
     width: 100%; 
     border-collapse: collapse; 
@@ -55,7 +56,6 @@ div.stButton > button:hover {
     border: 2px solid #000; 
     margin-top: 10px;
 }
-
 .hex-table td { 
     padding: 8px 2px;
     border-bottom: 1px solid #000; 
@@ -66,75 +66,38 @@ div.stButton > button:hover {
 .hex-table tr:last-child td { border-bottom: none; }
 .hex-table td:last-child { border-right: none; }
 
-/* 移除特定欄位的垂直分隔線 */
 .td-main { border-right: none !important; }
 .td-arrow { border-left: none !important; border-right: none !important; }
 .td-change { border-left: none !important; }
 
-/* 標題列 */
 .header-row td { 
     background-color: #ffffff; 
     font-weight: bold; 
     color: #000; 
     border-bottom: 2px solid #000; 
-    vertical-align: bottom !important; 
     padding-bottom: 10px;
+    vertical-align: bottom !important;
 }
 
-/* 爻條樣式 */
-.bar-yang { 
-    display: inline-block; 
-    width: 100px; 
-    height: 14px; 
-    background-color: #000; 
-}
-.bar-yin { 
-    display: inline-flex; 
-    width: 100px; 
-    height: 14px; 
-    justify-content: space-between; 
-}
-.bar-yin::before, .bar-yin::after { 
-    content: ""; 
-    width: 42px; 
-    height: 100%; 
-    background-color: #000; 
-}
+/* 陰陽爻條 */
+.bar-yang { display: inline-block; width: 100px; height: 14px; background-color: #000; }
+.bar-yin { display: inline-flex; width: 100px; height: 14px; justify-content: space-between; }
+.bar-yin::before, .bar-yin::after { content: ""; width: 42px; height: 100%; background-color: #000; }
 
 .bar-yang-c { background-color: #000; }
 .bar-yin-c::before, .bar-yin-c::after { background-color: #000; }
 
 /* 資訊區塊 */
-.info-box { 
-    border: 1px solid #000; 
-    padding: 15px; 
-    margin-bottom: 10px; 
-    background-color: #fff; 
-    color: #000 !important; 
-    line-height: 1.6;
-}
+.info-box { border: 1px solid #000; padding: 15px; margin-bottom: 10px; background-color: #fff; line-height: 1.6; }
+.attr-tag { font-size: 0.7em; border: 1px solid #000; padding: 1px 4px; margin-left: 5px; font-weight: normal; }
+.hex-title-text { font-size: 1.1em; display: block; margin-bottom: 5px; }
 
-/* 屬性標籤 */
-.attr-tag { 
-    font-size: 0.7em; 
-    border: 1px solid #000; 
-    padding: 1px 4px; 
-    color: #000; 
-    margin-left: 5px; 
-    font-weight: normal;
-}
-.hex-title-text {
-    font-size: 1.1em;
-    display: block;
-    margin-bottom: 5px;
-}
-
-/* 側邊欄指南樣式 (白底黑字 + 階層) */
+/* 側邊欄指南樣式 */
 .guide-box {
     background-color: #ffffff;
     border: 1px solid #000000;
     padding: 15px;
-    margin-top: 20px;
+    margin-top: 10px;
     color: #000000;
     font-size: 0.95em;
     line-height: 1.6;
@@ -156,18 +119,13 @@ div.stButton > button:hover {
     display: inline-block;
     border: 1px solid #ccc;
 }
-.guide-ul {
-    margin: 0;
-    padding-left: 20px;
-}
-.guide-li {
-    margin-bottom: 3px;
-}
+.guide-ul { margin: 0; padding-left: 20px; }
+.guide-li { margin-bottom: 3px; }
 </style>
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 1. 核心資料庫與映射表
+# 1. 核心資料庫 (修正 Trigrams 編碼邏輯)
 # ==============================================================================
 
 HEAVENLY_STEMS = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"]
@@ -193,19 +151,20 @@ NAYIN_TABLE = {
     "戊午": "天上火", "己未": "天上火", "庚申": "石榴木", "辛酉": "石榴木", "壬戌": "大海水", "癸亥": "大海水"
 }
 
-# 八卦基礎
+# 【修正重點】八卦編碼 (由下往上：初爻, 二爻, 三爻)
+# 1=陽, 0=陰
 TRIGRAMS = {
     "乾": {"code": [1, 1, 1], "element": "金", "stems": ["甲", "壬"], "branches": ["子", "寅", "辰", "午", "申", "戌"]},
-    "兌": {"code": [0, 1, 1], "element": "金", "stems": ["丁", "丁"], "branches": ["巳", "卯", "丑", "亥", "酉", "未"]},
+    "兌": {"code": [1, 1, 0], "element": "金", "stems": ["丁", "丁"], "branches": ["巳", "卯", "丑", "亥", "酉", "未"]}, # 下陽, 中陽, 上陰
     "離": {"code": [1, 0, 1], "element": "火", "stems": ["己", "己"], "branches": ["卯", "丑", "亥", "酉", "未", "巳"]},
-    "震": {"code": [0, 0, 1], "element": "木", "stems": ["庚", "庚"], "branches": ["子", "寅", "辰", "午", "申", "戌"]},
-    "巽": {"code": [1, 1, 0], "element": "木", "stems": ["辛", "辛"], "branches": ["丑", "亥", "酉", "未", "巳", "卯"]},
+    "震": {"code": [1, 0, 0], "element": "木", "stems": ["庚", "庚"], "branches": ["子", "寅", "辰", "午", "申", "戌"]}, # 下陽, 中陰, 上陰
+    "巽": {"code": [0, 1, 1], "element": "木", "stems": ["辛", "辛"], "branches": ["丑", "亥", "酉", "未", "巳", "卯"]}, # 下陰, 中陽, 上陽
     "坎": {"code": [0, 1, 0], "element": "水", "stems": ["戊", "戊"], "branches": ["寅", "辰", "午", "申", "戌", "子"]},
-    "艮": {"code": [1, 0, 0], "element": "土", "stems": ["丙", "丙"], "branches": ["辰", "午", "申", "戌", "子", "寅"]},
+    "艮": {"code": [0, 0, 1], "element": "土", "stems": ["丙", "丙"], "branches": ["辰", "午", "申", "戌", "子", "寅"]}, # 下陰, 中陰, 上陽
     "坤": {"code": [0, 0, 0], "element": "土", "stems": ["乙", "癸"], "branches": ["未", "巳", "卯", "丑", "亥", "酉"]},
 }
 
-# 64卦全名資料
+# 64卦全名
 HEX_INFO = {
     "乾為天": ("乾", 6), "天風姤": ("乾", 1), "天山遯": ("乾", 2), "天地否": ("乾", 3), "風地觀": ("乾", 4), "山地剝": ("乾", 5), "火地晉": ("乾", 7), "火天大有": ("乾", 8),
     "坎為水": ("坎", 6), "水澤節": ("坎", 1), "水雷屯": ("坎", 2), "水火既濟": ("坎", 3), "澤火革": ("坎", 4), "雷火豐": ("坎", 5), "地火明夷": ("坎", 7), "地水師": ("坎", 8),
@@ -217,7 +176,6 @@ HEX_INFO = {
     "兌為澤": ("兌", 6), "澤水困": ("兌", 1), "澤地萃": ("兌", 2), "澤山咸": ("兌", 3), "水山蹇": ("兌", 4), "地山謙": ("兌", 5), "雷山小過": ("兌", 7), "雷澤歸妹": ("兌", 8),
 }
 
-# 卦名簡稱映射表
 SHORT_NAME_MAP = {}
 for full_name in HEX_INFO.keys():
     short_name = full_name[-1] 
@@ -236,7 +194,6 @@ for full_name in HEX_INFO.keys():
         short_name = full_name[0]
     SHORT_NAME_MAP[short_name] = full_name
 
-# 神煞表
 STAR_A_TABLE = {"子": ("未", "亥"), "丑": ("未", "子"), "寅": ("戌", "丑"), "卯": ("戌", "寅"), "辰": ("戌", "卯"), "巳": ("丑", "辰"), "午": ("丑", "巳"), "未": ("丑", "午"), "申": ("辰", "未"), "酉": ("辰", "申"), "戌": ("辰", "酉"), "亥": ("未", "戌")}
 STAR_B_TABLE = {"甲": ("寅", "卯", "巳", "丑、未"), "乙": ("卯", "寅", "午", "申、子"), "丙": ("巳", "午", "申", "酉、亥"), "丁": ("午", "巳", "酉", "酉、亥"), "戊": ("巳", "午", "申", "丑、未"), "己": ("午", "巳", "酉", "申、子"), "庚": ("申", "酉", "亥", "寅、午"), "辛": ("酉", "申", "子", "寅、午"), "壬": ("亥", "子", "寅", "卯、巳"), "癸": ("子", "亥", "卯", "卯、巳")}
 STAR_C_TABLE = {"子": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "丑": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "寅": ("卯", "辰", "午", "申", "戌", "亥", "子"), "卯": ("子", "丑", "卯", "巳", "未", "申", "酉"), "辰": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "巳": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "午": ("卯", "辰", "午", "申", "戌", "亥", "子"), "未": ("子", "丑", "卯", "巳", "未", "申", "酉"), "申": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "酉": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "戌": ("卯", "辰", "午", "申", "戌", "亥", "子"), "亥": ("子", "丑", "卯", "巳", "未", "申", "酉")}
@@ -307,6 +264,7 @@ def get_code_from_name(name):
     
     lower_code = TRIGRAMS[target_lower]["code"]
     upper_code = TRIGRAMS[target_upper]["code"]
+    # 回傳順序為：下卦3爻 + 上卦3爻 (從底到頂)
     return lower_code + upper_code
 
 def get_line_details(tri_name, line_idx, is_outer):
@@ -321,19 +279,21 @@ def get_line_details(tri_name, line_idx, is_outer):
     return stem, branch, element, nayin
 
 def calculate_hexagram(numbers, day_stem, day_branch):
+    # numbers: [line1, line2, ..., line6] (Bottom -> Top)
     main_code = []
     change_code = []
     moves = []
     for n in numbers:
-        if n == 6:
+        if n == 6: # 老陰 (變陽)
             main_code.append(0); change_code.append(1); moves.append(True)
-        elif n == 7:
+        elif n == 7: # 少陽 (不變)
             main_code.append(1); change_code.append(1); moves.append(False)
-        elif n == 8:
+        elif n == 8: # 少陰 (不變)
             main_code.append(0); change_code.append(0); moves.append(False)
-        elif n == 9:
+        elif n == 9: # 老陽 (變陰)
             main_code.append(1); change_code.append(0); moves.append(True)
             
+    # 根據二進制碼 (Bottom -> Top) 查找八卦
     tri_map = {tuple(v["code"]): k for k, v in TRIGRAMS.items()}
     
     m_lower_code = tuple(main_code[:3]) 
@@ -497,6 +457,7 @@ with st.sidebar:
                         c_code = temp_c
                 
                 # 自動推算數字
+                # m_code 和 c_code 都是 [Line1, Line2... Line6]
                 for i in range(6):
                     m = m_code[i]
                     c = c_code[i]
@@ -510,10 +471,10 @@ with st.sidebar:
             input_vals = [7,7,7,7,7,7]
 
     st.markdown("<br>", unsafe_allow_html=True)
-    # [更新] 按鈕移至此處
+    # 按鈕位置優化
     btn = st.button("排盤", type="primary")
 
-    # [更新] 操作指南區塊：白底黑字、階層化
+    # [修正] 操作指南區塊：使用 markdown 渲染 HTML，並置於按鈕下方
     st.markdown("""
 <div class="guide-box">
     <div class="guide-header">📥 起卦操作指南 (三錢法)</div>

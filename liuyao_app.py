@@ -3,9 +3,9 @@ import datetime
 from lunar_python import Solar, Lunar
 
 # ==============================================================================
-# 0. 網頁設定 & CSS (白底黑字 + 專業排版)
+# 0. 網頁設定 & CSS (視覺優化：全黑白 + 修正指南顯示)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-修正版v10", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-修正版v11", layout="wide")
 
 st.markdown("""
 <style>
@@ -18,7 +18,7 @@ body, html, .stApp {
     color: #000000 !important;
 }
 
-/* 輸入框優化 */
+/* 輸入框強制白底黑字 */
 div[data-baseweb="input"] > div {
     background-color: #ffffff !important;
     border-color: #000000 !important;
@@ -29,6 +29,9 @@ input.st-ai, input.st-ah, input {
     -webkit-text-fill-color: #000000 !important;
     background-color: #ffffff !important;
     caret-color: #000000 !important;
+}
+label[data-baseweb="label"] {
+    color: #000000 !important;
 }
 
 /* 按鈕設定 */
@@ -66,6 +69,7 @@ div.stButton > button:hover {
 .hex-table tr:last-child td { border-bottom: none; }
 .hex-table td:last-child { border-right: none; }
 
+/* 無縫表格樣式 */
 .td-main { border-right: none !important; }
 .td-arrow { border-left: none !important; border-right: none !important; }
 .td-change { border-left: none !important; }
@@ -79,7 +83,7 @@ div.stButton > button:hover {
     vertical-align: bottom !important;
 }
 
-/* 陰陽爻條 */
+/* 爻條樣式 (加長版) */
 .bar-yang { display: inline-block; width: 100px; height: 14px; background-color: #000; }
 .bar-yin { display: inline-flex; width: 100px; height: 14px; justify-content: space-between; }
 .bar-yin::before, .bar-yin::after { content: ""; width: 42px; height: 100%; background-color: #000; }
@@ -92,40 +96,19 @@ div.stButton > button:hover {
 .attr-tag { font-size: 0.7em; border: 1px solid #000; padding: 1px 4px; margin-left: 5px; font-weight: normal; }
 .hex-title-text { font-size: 1.1em; display: block; margin-bottom: 5px; }
 
-/* 側邊欄指南樣式 */
-.guide-box {
-    background-color: #ffffff;
-    border: 1px solid #000000;
-    padding: 15px;
+/* 指南區塊樣式 (Markdown 容器) */
+.guide-container {
+    border-top: 1px solid #000;
+    padding-top: 15px;
     margin-top: 10px;
-    color: #000000;
-    font-size: 0.95em;
-    line-height: 1.6;
+    font-size: 0.9em;
+    color: #000;
 }
-.guide-header {
-    font-weight: bold;
-    font-size: 1.1em;
-    border-bottom: 2px solid #000;
-    padding-bottom: 5px;
-    margin-bottom: 10px;
-    text-align: center;
-}
-.guide-section-title {
-    font-weight: bold;
-    margin-top: 10px;
-    margin-bottom: 5px;
-    background-color: #eee;
-    padding: 2px 5px;
-    display: inline-block;
-    border: 1px solid #ccc;
-}
-.guide-ul { margin: 0; padding-left: 20px; }
-.guide-li { margin-bottom: 3px; }
 </style>
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 1. 核心資料庫 (修正 Trigrams 編碼邏輯)
+# 1. 核心資料庫 (Trigrams 邏輯修正)
 # ==============================================================================
 
 HEAVENLY_STEMS = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"]
@@ -137,7 +120,6 @@ LIU_SHEN_START = {
     "己": 3, "庚": 4, "辛": 4, "壬": 5, "癸": 5
 }
 
-# 納音表
 NAYIN_TABLE = {
     "甲子": "海中金", "乙丑": "海中金", "丙寅": "爐中火", "丁卯": "爐中火", "戊辰": "大林木", "己巳": "大林木", 
     "庚午": "路旁土", "辛未": "路旁土", "壬申": "劍鋒金", "癸酉": "劍鋒金", "甲戌": "山頭火", "乙亥": "山頭火",
@@ -151,20 +133,19 @@ NAYIN_TABLE = {
     "戊午": "天上火", "己未": "天上火", "庚申": "石榴木", "辛酉": "石榴木", "壬戌": "大海水", "癸亥": "大海水"
 }
 
-# 【修正重點】八卦編碼 (由下往上：初爻, 二爻, 三爻)
+# 【關鍵修正】八卦編碼：嚴格遵循「由下往上」順序 [初爻, 二爻, 三爻]
 # 1=陽, 0=陰
 TRIGRAMS = {
     "乾": {"code": [1, 1, 1], "element": "金", "stems": ["甲", "壬"], "branches": ["子", "寅", "辰", "午", "申", "戌"]},
-    "兌": {"code": [1, 1, 0], "element": "金", "stems": ["丁", "丁"], "branches": ["巳", "卯", "丑", "亥", "酉", "未"]}, # 下陽, 中陽, 上陰
+    "兌": {"code": [1, 1, 0], "element": "金", "stems": ["丁", "丁"], "branches": ["巳", "卯", "丑", "亥", "酉", "未"]}, # 初陽, 二陽, 三陰 (澤)
     "離": {"code": [1, 0, 1], "element": "火", "stems": ["己", "己"], "branches": ["卯", "丑", "亥", "酉", "未", "巳"]},
-    "震": {"code": [1, 0, 0], "element": "木", "stems": ["庚", "庚"], "branches": ["子", "寅", "辰", "午", "申", "戌"]}, # 下陽, 中陰, 上陰
-    "巽": {"code": [0, 1, 1], "element": "木", "stems": ["辛", "辛"], "branches": ["丑", "亥", "酉", "未", "巳", "卯"]}, # 下陰, 中陽, 上陽
+    "震": {"code": [1, 0, 0], "element": "木", "stems": ["庚", "庚"], "branches": ["子", "寅", "辰", "午", "申", "戌"]}, # 初陽, 二陰, 三陰 (雷)
+    "巽": {"code": [0, 1, 1], "element": "木", "stems": ["辛", "辛"], "branches": ["丑", "亥", "酉", "未", "巳", "卯"]}, # 初陰, 二陽, 三陽 (風)
     "坎": {"code": [0, 1, 0], "element": "水", "stems": ["戊", "戊"], "branches": ["寅", "辰", "午", "申", "戌", "子"]},
-    "艮": {"code": [0, 0, 1], "element": "土", "stems": ["丙", "丙"], "branches": ["辰", "午", "申", "戌", "子", "寅"]}, # 下陰, 中陰, 上陽
+    "艮": {"code": [0, 0, 1], "element": "土", "stems": ["丙", "丙"], "branches": ["辰", "午", "申", "戌", "子", "寅"]}, # 初陰, 二陰, 三陽 (山)
     "坤": {"code": [0, 0, 0], "element": "土", "stems": ["乙", "癸"], "branches": ["未", "巳", "卯", "丑", "亥", "酉"]},
 }
 
-# 64卦全名
 HEX_INFO = {
     "乾為天": ("乾", 6), "天風姤": ("乾", 1), "天山遯": ("乾", 2), "天地否": ("乾", 3), "風地觀": ("乾", 4), "山地剝": ("乾", 5), "火地晉": ("乾", 7), "火天大有": ("乾", 8),
     "坎為水": ("坎", 6), "水澤節": ("坎", 1), "水雷屯": ("坎", 2), "水火既濟": ("坎", 3), "澤火革": ("坎", 4), "雷火豐": ("坎", 5), "地火明夷": ("坎", 7), "地水師": ("坎", 8),
@@ -264,7 +245,6 @@ def get_code_from_name(name):
     
     lower_code = TRIGRAMS[target_lower]["code"]
     upper_code = TRIGRAMS[target_upper]["code"]
-    # 回傳順序為：下卦3爻 + 上卦3爻 (從底到頂)
     return lower_code + upper_code
 
 def get_line_details(tri_name, line_idx, is_outer):
@@ -279,21 +259,19 @@ def get_line_details(tri_name, line_idx, is_outer):
     return stem, branch, element, nayin
 
 def calculate_hexagram(numbers, day_stem, day_branch):
-    # numbers: [line1, line2, ..., line6] (Bottom -> Top)
     main_code = []
     change_code = []
     moves = []
     for n in numbers:
-        if n == 6: # 老陰 (變陽)
+        if n == 6:
             main_code.append(0); change_code.append(1); moves.append(True)
-        elif n == 7: # 少陽 (不變)
+        elif n == 7:
             main_code.append(1); change_code.append(1); moves.append(False)
-        elif n == 8: # 少陰 (不變)
+        elif n == 8:
             main_code.append(0); change_code.append(0); moves.append(False)
-        elif n == 9: # 老陽 (變陰)
+        elif n == 9:
             main_code.append(1); change_code.append(0); moves.append(True)
             
-    # 根據二進制碼 (Bottom -> Top) 查找八卦
     tri_map = {tuple(v["code"]): k for k, v in TRIGRAMS.items()}
     
     m_lower_code = tuple(main_code[:3]) 
@@ -457,7 +435,6 @@ with st.sidebar:
                         c_code = temp_c
                 
                 # 自動推算數字
-                # m_code 和 c_code 都是 [Line1, Line2... Line6]
                 for i in range(6):
                     m = m_code[i]
                     c = c_code[i]
@@ -471,35 +448,29 @@ with st.sidebar:
             input_vals = [7,7,7,7,7,7]
 
     st.markdown("<br>", unsafe_allow_html=True)
-    # 按鈕位置優化
+    
+    # 1. 按鈕位置調整至指南上方
     btn = st.button("排盤", type="primary")
 
-    # [修正] 操作指南區塊：使用 markdown 渲染 HTML，並置於按鈕下方
+    # 2. 指南修復：使用純 Markdown 呈現，避免 HTML 代碼外洩
+    st.markdown("---")
     st.markdown("""
-<div class="guide-box">
-    <div class="guide-header">📥 起卦操作指南 (三錢法)</div>
-    
-    <div class="guide-section-title">【基本操作】</div>
-    <ul class="guide-ul">
-        <li class="guide-li"><b>準備</b>：使用 3 枚錢幣，共擲 6 次。</li>
-        <li class="guide-li"><b>順序</b>：由下往上（1爻、2爻...至6爻）。</li>
-    </ul>
+### 📥 起卦操作指南 (三錢法)
 
-    <div class="guide-section-title">【分值定義】</div>
-    <ul class="guide-ul">
-        <li class="guide-li"><b>正 (2分)</b>：簡單面 (例如: 字面)</li>
-        <li class="guide-li"><b>反 (3分)</b>：繁雜面 (例如: 花色/人頭)</li>
-    </ul>
+**【基本操作】**
+* **準備**：使用 3 枚錢幣，共擲 6 次。
+* **順序**：由下往上（1爻、2爻...至6爻）。
 
-    <div class="guide-section-title">【判定對照】</div>
-    <ul class="guide-ul">
-        <li class="guide-li"><b>7 分 (一反兩正)</b>：記做「單」，少陽 ⚊</li>
-        <li class="guide-li"><b>8 分 (一正兩反)</b>：記做「拆」，少陰 ⚋</li>
-        <li class="guide-li"><b>9 分 (三個反面)</b>：記做「重」，老陽 ⚊ (變爻)</li>
-        <li class="guide-li"><b>6 分 (三個正面)</b>：記做「交」，老陰 ⚋ (變爻)</li>
-    </ul>
-</div>
-""", unsafe_allow_html=True)
+**【分值定義】**
+* **正 (2分)**：簡單面 (例如: 字面)
+* **反 (3分)**：繁雜面 (例如: 花色/人頭)
+
+**【判定對照】**
+* **7 分 (一反兩正)**：記做「單」，少陽 ⚊
+* **8 分 (一正兩反)**：記做「拆」，少陰 ⚋
+* **9 分 (三個反面)**：記做「重」，老陽 ⚊ (變爻)
+* **6 分 (三個正面)**：記做「交」，老陰 ⚋ (變爻)
+""")
 
 if btn or True:
     if len(input_vals) < 6: input_vals = [7,7,7,7,7,7]

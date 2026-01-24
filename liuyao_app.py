@@ -361,7 +361,7 @@ def calculate_hexagram(numbers, day_stem, day_branch):
 
 with st.sidebar:
     st.header("設定")
-    question_input = st.text_input("輸入問題", placeholder="請輸入占卜事項...")
+    question_input = st.text_input("輸入問題", placeholder="請輸入占卜問題...")
     date_mode = st.radio("日期模式", ["自動 (Current)", "指定西曆", "手動干支"])
     
     gz_year, gz_month, gz_day, gz_hour = "", "", "", ""
@@ -413,7 +413,7 @@ with st.sidebar:
     input_vals = []
     
     if method == "數字起卦":
-        st.write("由初爻至上爻")
+        st.write("由爻1至爻6")
         cols = st.columns(6)
         def_vals = [7, 7, 7, 7, 7, 7]
         for i in range(6):
@@ -462,13 +462,13 @@ with st.sidebar:
 
 **【分值定義】**
 * **正 (2分)**：簡單面 (例如: 字面)
-* **反 (3分)**：繁雜面 (例如: 花色/人頭)
+* **反 (3分)**：繁雜面 (例如: 花色)
 
 **【判定對照】**
-* **7 分 (一反兩正)**：記做「單」，少陽 ⚊
-* **8 分 (一正兩反)**：記做「拆」，少陰 ⚋
-* **9 分 (三個反面)**：記做「重」，老陽 ⚊ (變爻)
-* **6 分 (三個正面)**：記做「交」，老陰 ⚋ (變爻)
+* **7 分 (一反兩正)**：少陽 ⚊
+* **8 分 (一正兩反)**：少陰 ⚋
+* **9 分 (三個反面)**：老陽 ⚊ (O-->)
+* **6 分 (三個正面)**：老陰 ⚋ (X-->)
 """)
 
 if btn or True:

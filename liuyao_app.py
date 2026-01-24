@@ -414,7 +414,7 @@ with st.sidebar:
     input_vals = []
     
     if method == "數字起卦":
-        st.write("由爻1至爻6")
+        st.write("由下往上（由爻1至爻6）")
         cols = st.columns(6)
         def_vals = [7, 7, 7, 7, 7, 7]
         for i in range(6):

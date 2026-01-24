@@ -362,7 +362,7 @@ def calculate_hexagram(numbers, day_stem, day_branch):
 
 with st.sidebar:
     st.header("設定")
-    question_input = st.text_input("輸入問題", placeholder="請輸入占卜事項...")
+    question_input = st.text_input("輸入問題", placeholder="請輸入占卜問題...")
     date_mode = st.radio("日期模式", ["自動 (Current)", "指定西曆", "手動干支"])
     
     gz_year, gz_month, gz_day, gz_hour = "", "", "", ""

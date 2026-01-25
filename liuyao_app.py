@@ -1,11 +1,12 @@
 import streamlit as st
 import datetime
+import random  # [新增] 用於產生隨機數
 from lunar_python import Solar, Lunar
 
 # ==============================================================================
 # 0. 網頁設定 & CSS (視覺優化：按鈕紅底白字 + 無縫表格)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-修正版v12", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-隨機起卦版v13", layout="wide")
 
 st.markdown("""
 <style>
@@ -34,7 +35,7 @@ label[data-baseweb="label"] {
     color: #000000 !important;
 }
 
-/* [修正 2] 按鈕設定 (紅底白字) */
+/* 按鈕設定 (紅底白字) */
 div.stButton > button {
     background-color: #d32f2f !important; /* 紅色背景 */
     color: #ffffff !important;             /* 白色文字 */
@@ -361,7 +362,7 @@ def calculate_hexagram(numbers, day_stem, day_branch):
 
 with st.sidebar:
     st.header("設定")
-    question_input = st.text_input("輸入問題", placeholder="請輸入占卜問題...")
+    question_input = st.text_input("輸入問題", placeholder="請輸入占卜事項...")
     date_mode = st.radio("日期模式", ["自動 (Current)", "指定西曆", "手動干支"])
     
     gz_year, gz_month, gz_day, gz_hour = "", "", "", ""
@@ -413,9 +414,15 @@ with st.sidebar:
     input_vals = []
     
     if method == "數字起卦":
-        st.write("由爻1至爻6")
+        st.write("由初爻至上爻")
         cols = st.columns(6)
-        def_vals = [7, 7, 7, 7, 7, 7]
+        
+        # [修改] 隨機初始化數值，只在第一次加載時執行
+        if "init_random_vals" not in st.session_state:
+            st.session_state.init_random_vals = [random.choice([6, 7, 8, 9]) for _ in range(6)]
+        
+        def_vals = st.session_state.init_random_vals
+        
         for i in range(6):
             val = cols[i].number_input(f"爻{i+1}", 6, 9, def_vals[i], key=f"n{i}")
             input_vals.append(val)
@@ -462,17 +469,16 @@ with st.sidebar:
 
 **【分值定義】**
 * **正 (2分)**：簡單面 (例如: 字面)
-* **反 (3分)**：繁雜面 (例如: 花色)
+* **反 (3分)**：繁雜面 (例如: 花色/人頭)
 
 **【判定對照】**
-* **7 分 (一反兩正)**：少陽 ⚊
-* **8 分 (一正兩反)**：少陰 ⚋
-* **9 分 (三個反面)**：老陽 ⚊ (O-->)
-* **6 分 (三個正面)**：老陰 ⚋ (X-->)
+* **7 分 (一反兩正)**：記做「單」，少陽 ⚊
+* **8 分 (一正兩反)**：記做「拆」，少陰 ⚋
+* **9 分 (三個反面)**：記做「重」，老陽 ⚊ (變爻)
+* **6 分 (三個正面)**：記做「交」，老陰 ⚋ (變爻)
 """)
 
 if btn or True:
-    # [修正 1] 手動干支必填檢查與空值處理
     if date_mode == "手動干支":
         if not gz_month or not gz_day:
             st.error("【錯誤】月柱與日柱為必填項目，請完整輸入干支（如：甲子）")
@@ -504,7 +510,7 @@ if btn or True:
 
     question_html = f"""<div style="font-size:1.2em; font-weight:bold; margin-bottom:10px; border-bottom:1px solid #000; padding-bottom:5px;">問題：{question_input if question_input else "（未輸入）"}</div>"""
 
-    # [修正 1] 動態建構日期字串
+    # 動態建構日期字串
     date_parts = []
     if gz_year: date_parts.append(f"<span>{gz_year}</span> 年")
     date_parts.append(f"<span>{gz_month}</span> 月")

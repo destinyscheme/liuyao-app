@@ -6,7 +6,7 @@ from lunar_python import Solar, Lunar
 # ==============================================================================
 # 0. 網頁設定 & CSS (視覺優化：按鈕紅底白字 + 無縫表格)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-精修版v14", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-精修版v15", layout="wide")
 
 st.markdown("""
 <style>
@@ -362,7 +362,7 @@ def calculate_hexagram(numbers, day_stem, day_branch):
 
 with st.sidebar:
     st.header("設定")
-    # [修正 1] 輸入提示修改
+    # [修正 1] 提示詞更新
     question_input = st.text_input("輸入問題", placeholder="請輸入占卜問題...")
     date_mode = st.radio("日期模式", ["自動 (Current)", "指定西曆", "手動干支"])
     
@@ -409,30 +409,45 @@ with st.sidebar:
         
     st.write(f"當前：{gz_year}年 {gz_month}月 {gz_day}日 {gz_hour}時")
 
+    # [修正 3] 模式更名為「三錢起卦」
     st.subheader("起卦方式")
-    method = st.radio("模式", ["數字起卦", "卦名起卦"], horizontal=True)
+    method = st.radio("模式", ["三錢起卦", "卦名起卦"], horizontal=True)
 
     input_vals = []
     
-    if method == "數字起卦":
+    # 隨機初始化數值 (第一次載入時)
+    if "init_random_vals" not in st.session_state:
+        st.session_state.init_random_vals = [random.choice([6, 7, 8, 9]) for _ in range(6)]
+    
+    # 預先計算亂數對應的卦名 (用於切換時自動填入)
+    rand_m_name, rand_c_name, _, _, _, _, _, _ = calculate_hexagram(st.session_state.init_random_vals, "甲", "子")
+
+    if method == "三錢起卦":
         st.write("由初爻至上爻")
         cols = st.columns(6)
-        
-        # 隨機初始化數值
-        if "init_random_vals" not in st.session_state:
-            st.session_state.init_random_vals = [random.choice([6, 7, 8, 9]) for _ in range(6)]
-        
         def_vals = st.session_state.init_random_vals
         
-        # [修正 1] 爻位標籤更新
+        # [修正 2] 爻位標籤更新
         yao_labels = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"]
+        
+        # [修正 1] 放寬限制為 0~99 讓錯誤訊息能顯示
         for i in range(6):
-            val = cols[i].number_input(yao_labels[i], 6, 9, def_vals[i], key=f"n{i}")
+            # key使用 'n{i}' 保持狀態
+            val = cols[i].number_input(yao_labels[i], 0, 99, def_vals[i], key=f"n{i}")
+            
+            # [修正 1] 嚴格檢查並阻擋錯誤輸入
+            if val not in [6, 7, 8, 9]:
+                st.error(f"【錯誤】{yao_labels[i]}數值必須等於6～9之間的正整數")
+                st.stop()
             input_vals.append(val)
-    else:
+            
+    else: # 卦名起卦
         col_m, col_c = st.columns(2)
-        main_hex_input = col_m.text_input("主卦 (必填)", "")
-        change_hex_input = col_c.text_input("變卦 (選填)", "")
+        # [修正 2] 自動填入剛才亂數的卦名
+        main_hex_input = col_m.text_input("主卦 (必填)", value=rand_m_name)
+        # 變卦若無變爻則為空，若有則填入
+        change_val_str = rand_c_name if rand_c_name != rand_m_name else ""
+        change_hex_input = col_c.text_input("變卦 (選填)", value=change_val_str)
         
         if main_hex_input:
             m_code = get_code_from_name(main_hex_input)
@@ -461,7 +476,7 @@ with st.sidebar:
     # 按鈕位置
     btn = st.button("排盤", type="primary")
 
-    # [修正 2] 指南文案更新
+    # [修正 4-8] 指南文案全面更新
     st.markdown("---")
     st.markdown("""
 ### 📥 起卦操作指南 (三錢法)
@@ -513,7 +528,6 @@ if btn or True:
 
     question_html = f"""<div style="font-size:1.2em; font-weight:bold; margin-bottom:10px; border-bottom:1px solid #000; padding-bottom:5px;">問題：{question_input if question_input else "（未輸入）"}</div>"""
 
-    # 動態建構日期字串
     date_parts = []
     if gz_year: date_parts.append(f"<span>{gz_year}</span> 年")
     date_parts.append(f"<span>{gz_month}</span> 月")

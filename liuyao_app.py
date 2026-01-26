@@ -4,9 +4,9 @@ import random
 from lunar_python import Solar, Lunar
 
 # ==============================================================================
-# 0. 網頁設定 & CSS (視覺優化：按鈕紅底白字 + 無縫表格 + 星煞對齊)
+# 0. 網頁設定 & CSS
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-連動版v16", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-精修版v17", layout="wide")
 
 st.markdown("""
 <style>
@@ -157,23 +157,24 @@ HEX_INFO = {
     "兌為澤": ("兌", 6), "澤水困": ("兌", 1), "澤地萃": ("兌", 2), "澤山咸": ("兌", 3), "水山蹇": ("兌", 4), "地山謙": ("兌", 5), "雷山小過": ("兌", 7), "雷澤歸妹": ("兌", 8),
 }
 
-SHORT_NAME_MAP = {}
+# 雙向映射表：全名 <-> 簡稱
+SHORT_NAME_MAP = {} # 簡稱 -> 全名
+FULL_TO_SHORT_MAP = {} # 全名 -> 簡稱
+
+SPECIAL_HEX = ["大有", "同人", "大畜", "小畜", "無妄", "大壯", "大過", "未濟", "既濟"]
+SPECIAL_HEX_FULL = ["火天大有", "天火同人", "山天大畜", "風天小畜", "天雷無妄", "雷天大壯", "澤風大過", "火水未濟", "水火既濟"]
+
 for full_name in HEX_INFO.keys():
-    short_name = full_name[-1] 
-    if full_name in ["大有", "同人", "大畜", "小畜", "無妄", "大壯", "大過", "未濟", "既濟"]:
-        short_name = full_name
-    elif full_name == "火天大有": short_name = "大有"
-    elif full_name == "天火同人": short_name = "同人"
-    elif full_name == "山天大畜": short_name = "大畜"
-    elif full_name == "風天小畜": short_name = "小畜"
-    elif full_name == "天雷無妄": short_name = "無妄"
-    elif full_name == "雷天大壯": short_name = "大壯"
-    elif full_name == "澤風大過": short_name = "大過"
-    elif full_name == "火水未濟": short_name = "未濟"
-    elif full_name == "水火既濟": short_name = "既濟"
-    if "為" in full_name:
-        short_name = full_name[0]
+    # 決定簡稱
+    if full_name in SPECIAL_HEX_FULL:
+        short_name = full_name[-2:] # 取後兩字
+    elif "為" in full_name:
+        short_name = full_name[0] # 取首字 (八純卦)
+    else:
+        short_name = full_name[-1] # 取末字
+    
     SHORT_NAME_MAP[short_name] = full_name
+    FULL_TO_SHORT_MAP[full_name] = short_name
 
 STAR_A_TABLE = {"子": ("未", "亥"), "丑": ("未", "子"), "寅": ("戌", "丑"), "卯": ("戌", "寅"), "辰": ("戌", "卯"), "巳": ("丑", "辰"), "午": ("丑", "巳"), "未": ("丑", "午"), "申": ("辰", "未"), "酉": ("辰", "申"), "戌": ("辰", "酉"), "亥": ("未", "戌")}
 STAR_B_TABLE = {"甲": ("寅", "卯", "巳", "丑、未"), "乙": ("卯", "寅", "午", "申、子"), "丙": ("巳", "午", "申", "酉、亥"), "丁": ("午", "巳", "酉", "酉、亥"), "戊": ("巳", "午", "申", "丑、未"), "己": ("午", "巳", "酉", "申、子"), "庚": ("申", "酉", "亥", "寅、午"), "辛": ("酉", "申", "子", "寅、午"), "壬": ("亥", "子", "寅", "卯、巳"), "癸": ("子", "亥", "卯", "卯、巳")}
@@ -419,12 +420,16 @@ with st.sidebar:
     
     # 預先計算當前數值對應的卦名 (供卦名模式顯示)
     curr_m_name, curr_c_name, _, _, _, _, _, _ = calculate_hexagram(st.session_state.line_values, "甲", "子")
+    
+    # [修正 1] 轉為簡稱顯示 (UI Display & Default Value)
+    curr_m_short = FULL_TO_SHORT_MAP.get(curr_m_name, curr_m_name)
+    curr_c_short = FULL_TO_SHORT_MAP.get(curr_c_name, curr_c_name) if curr_c_name != curr_m_name else ""
 
     if method == "三錢起卦":
         st.write("由初爻至上爻")
         cols = st.columns(6)
         
-        # [修正 2] 嚴格限制 6~9
+        # [修正 2] 嚴格限制 6~9 (無錯誤提示，因為無法輸入其他值)
         yao_labels = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"]
         new_values = []
         for i in range(6):
@@ -440,19 +445,15 @@ with st.sidebar:
         # 更新狀態 (若數值有變)
         if new_values != st.session_state.line_values:
             st.session_state.line_values = new_values
-            # 這裡不需rerun，Streamlit 下一次循環會用新值
             
         input_vals = st.session_state.line_values
 
     else: # 卦名起卦
         col_m, col_c = st.columns(2)
         
-        # [修正 1] 自動填入當前數值對應的卦名
-        main_hex_input = col_m.text_input("主卦 (必填)", value=curr_m_name)
-        
-        # 變卦顯示邏輯：若無變爻(變卦同主卦)，則顯示空白，否則顯示變卦名
-        default_c_val = curr_c_name if curr_c_name != curr_m_name else ""
-        change_hex_input = col_c.text_input("變卦 (選填)", value=default_c_val)
+        # [修正 1] 自動填入當前數值對應的「簡稱」卦名
+        main_hex_input = col_m.text_input("主卦 (必填)", value=curr_m_short)
+        change_hex_input = col_c.text_input("變卦 (選填)", value=curr_c_short)
         
         # 用戶輸入後，嘗試解析回數字並更新 session_state
         if main_hex_input:
@@ -478,8 +479,8 @@ with st.sidebar:
                 st.session_state.line_values = temp_vals
                 input_vals = temp_vals
             else:
-                st.error("找不到主卦名稱，請確認輸入(例如: 需, 水天需)")
-                input_vals = st.session_state.line_values # 保持原值
+                st.error("找不到主卦名稱，請確認輸入(例如: 需, 水天需, 乾)")
+                input_vals = st.session_state.line_values
         else:
             input_vals = st.session_state.line_values
 
@@ -514,7 +515,6 @@ if btn or True:
             st.error("【錯誤】月柱與日柱為必填項目，請完整輸入干支（如：甲子）")
             st.stop()
 
-    # 確保有值
     if not input_vals: input_vals = [7,7,7,7,7,7]
         
     m_name, c_name, palace, lines_data, p_el, m_attrs, c_attrs, c_palace = calculate_hexagram(input_vals, day_stem, day_branch)
@@ -549,7 +549,7 @@ if btn or True:
     
     date_html_str = " ".join(date_parts)
 
-    # [修正 3] 星煞對齊優化：外層 Flex 置中，內層 text-align: left
+    # [修正 3] 星煞對齊優化
     info_html = f"""<div class="info-box">
 <div style="text-align:center; font-size:1.1em; font-weight:bold; margin-bottom:10px;">
 {date_html_str} &nbsp;&nbsp; (旬空: <span>{voids}</span>)
@@ -569,12 +569,16 @@ if btn or True:
             tags += f'<span class="attr-tag">{a}</span>'
         return tags
 
+    # [修正 1] 顯示簡稱
+    m_display_name = FULL_TO_SHORT_MAP.get(m_name, m_name)
+    c_display_name = FULL_TO_SHORT_MAP.get(c_name, c_name)
+
     m_tags_str = make_tags_str(m_attrs)
-    m_header_content = f"""<span class="hex-title-text">{palace}宮：{m_name} {m_tags_str}</span><span>【主卦】</span>"""
+    m_header_content = f"""<span class="hex-title-text">{palace}宮：{m_display_name} {m_tags_str}</span><span>【主卦】</span>"""
     
     c_tags_str = make_tags_str(c_attrs)
     if has_moving:
-        c_header_content = f"""<span class="hex-title-text">{c_palace}宮：{c_name} {c_tags_str}</span><span>【變卦】</span>"""
+        c_header_content = f"""<span class="hex-title-text">{c_palace}宮：{c_display_name} {c_tags_str}</span><span>【變卦】</span>"""
     else:
         c_header_content = f"""<span class="hex-title-text">&nbsp;</span><span>【變卦】</span>"""
 

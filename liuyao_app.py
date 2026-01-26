@@ -6,7 +6,7 @@ from lunar_python import Solar, Lunar
 # ==============================================================================
 # 0. 網頁設定 & CSS
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-精修版v18", layout="wide")
+st.set_page_config(page_title="六爻排盤", layout="wide")
 
 st.markdown("""
 <style>

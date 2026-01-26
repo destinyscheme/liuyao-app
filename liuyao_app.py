@@ -6,7 +6,7 @@ from lunar_python import Solar, Lunar
 # ==============================================================================
 # 0. 網頁設定 & CSS
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-精修版v17", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-精修版v18", layout="wide")
 
 st.markdown("""
 <style>
@@ -157,23 +157,27 @@ HEX_INFO = {
     "兌為澤": ("兌", 6), "澤水困": ("兌", 1), "澤地萃": ("兌", 2), "澤山咸": ("兌", 3), "水山蹇": ("兌", 4), "地山謙": ("兌", 5), "雷山小過": ("兌", 7), "雷澤歸妹": ("兌", 8),
 }
 
-# 雙向映射表：全名 <-> 簡稱
-SHORT_NAME_MAP = {} # 簡稱 -> 全名
-FULL_TO_SHORT_MAP = {} # 全名 -> 簡稱
-
-SPECIAL_HEX = ["大有", "同人", "大畜", "小畜", "無妄", "大壯", "大過", "未濟", "既濟"]
-SPECIAL_HEX_FULL = ["火天大有", "天火同人", "山天大畜", "風天小畜", "天雷無妄", "雷天大壯", "澤風大過", "火水未濟", "水火既濟"]
+# 雙向映射與簡稱邏輯 [優化]
+SHORT_NAME_MAP = {} # 簡稱 -> 全名 (輸入用)
+FULL_TO_SHORT_MAP = {} # 全名 -> 簡稱 (顯示用)
 
 for full_name in HEX_INFO.keys():
-    # 決定簡稱
-    if full_name in SPECIAL_HEX_FULL:
-        short_name = full_name[-2:] # 取後兩字
-    elif "為" in full_name:
-        short_name = full_name[0] # 取首字 (八純卦)
+    # 邏輯：
+    # 1. "乾為天" -> "乾" (含"為"字，取首字)
+    # 2. "風澤中孚" -> "中孚" (4字，取後兩字)
+    # 3. "水天需" -> "需" (3字，取後一字)
+    
+    if "為" in full_name:
+        short_name = full_name[0]
+    elif len(full_name) == 4:
+        short_name = full_name[-2:]
     else:
-        short_name = full_name[-1] # 取末字
+        short_name = full_name[-1]
     
     SHORT_NAME_MAP[short_name] = full_name
+    # 容錯：若使用者輸入全名也要能查到
+    SHORT_NAME_MAP[full_name] = full_name
+    
     FULL_TO_SHORT_MAP[full_name] = short_name
 
 STAR_A_TABLE = {"子": ("未", "亥"), "丑": ("未", "子"), "寅": ("戌", "丑"), "卯": ("戌", "寅"), "辰": ("戌", "卯"), "巳": ("丑", "辰"), "午": ("丑", "巳"), "未": ("丑", "午"), "申": ("辰", "未"), "酉": ("辰", "申"), "戌": ("辰", "酉"), "亥": ("未", "戌")}
@@ -221,11 +225,10 @@ def get_hexagram_name_by_code(upper, lower):
 
 def get_code_from_name(name):
     name = name.strip()
-    if name in HEX_INFO:
-        full_name = name
-    elif name in SHORT_NAME_MAP:
-        full_name = SHORT_NAME_MAP[name]
-    else:
+    # 先查是否為合法名稱（全名或簡稱）
+    full_name = SHORT_NAME_MAP.get(name, None)
+    
+    if not full_name:
         return None
     
     tri_names = list(TRIGRAMS.keys())
@@ -412,24 +415,21 @@ with st.sidebar:
     st.subheader("起卦方式")
     method = st.radio("模式", ["三錢起卦", "卦名起卦"], horizontal=True)
 
-    # 1. 狀態初始化：單一真值來源 line_values
     if "line_values" not in st.session_state:
         st.session_state.line_values = [random.choice([6, 7, 8, 9]) for _ in range(6)]
 
     input_vals = []
     
-    # 預先計算當前數值對應的卦名 (供卦名模式顯示)
+    # 預算卦名供自動填入
     curr_m_name, curr_c_name, _, _, _, _, _, _ = calculate_hexagram(st.session_state.line_values, "甲", "子")
     
-    # [修正 1] 轉為簡稱顯示 (UI Display & Default Value)
+    # [修正] 側邊欄輸入框優先顯示「簡稱」
     curr_m_short = FULL_TO_SHORT_MAP.get(curr_m_name, curr_m_name)
     curr_c_short = FULL_TO_SHORT_MAP.get(curr_c_name, curr_c_name) if curr_c_name != curr_m_name else ""
 
     if method == "三錢起卦":
         st.write("由初爻至上爻")
         cols = st.columns(6)
-        
-        # [修正 2] 嚴格限制 6~9 (無錯誤提示，因為無法輸入其他值)
         yao_labels = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"]
         new_values = []
         for i in range(6):
@@ -442,21 +442,18 @@ with st.sidebar:
             )
             new_values.append(val)
         
-        # 更新狀態 (若數值有變)
         if new_values != st.session_state.line_values:
             st.session_state.line_values = new_values
             
         input_vals = st.session_state.line_values
 
-    else: # 卦名起卦
+    else: 
         col_m, col_c = st.columns(2)
-        
-        # [修正 1] 自動填入當前數值對應的「簡稱」卦名
         main_hex_input = col_m.text_input("主卦 (必填)", value=curr_m_short)
         change_hex_input = col_c.text_input("變卦 (選填)", value=curr_c_short)
         
-        # 用戶輸入後，嘗試解析回數字並更新 session_state
         if main_hex_input:
+            # 支援輸入簡稱或全名 (透過 SHORT_NAME_MAP 查詢)
             m_code = get_code_from_name(main_hex_input)
             if m_code:
                 c_code = m_code 
@@ -465,7 +462,6 @@ with st.sidebar:
                     if temp_c:
                         c_code = temp_c
                 
-                # 反推數字
                 temp_vals = []
                 for i in range(6):
                     m = m_code[i]
@@ -475,7 +471,6 @@ with st.sidebar:
                     elif m == 0 and c == 1: temp_vals.append(6)
                     elif m == 1 and c == 0: temp_vals.append(9)
                 
-                # 更新 Session State
                 st.session_state.line_values = temp_vals
                 input_vals = temp_vals
             else:
@@ -486,10 +481,8 @@ with st.sidebar:
 
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # 按鈕位置
     btn = st.button("排盤", type="primary")
 
-    # 指南文案
     st.markdown("---")
     st.markdown("""
 ### 📥 起卦操作指南 (三錢法)
@@ -549,7 +542,6 @@ if btn or True:
     
     date_html_str = " ".join(date_parts)
 
-    # [修正 3] 星煞對齊優化
     info_html = f"""<div class="info-box">
 <div style="text-align:center; font-size:1.1em; font-weight:bold; margin-bottom:10px;">
 {date_html_str} &nbsp;&nbsp; (旬空: <span>{voids}</span>)
@@ -569,16 +561,13 @@ if btn or True:
             tags += f'<span class="attr-tag">{a}</span>'
         return tags
 
-    # [修正 1] 顯示簡稱
-    m_display_name = FULL_TO_SHORT_MAP.get(m_name, m_name)
-    c_display_name = FULL_TO_SHORT_MAP.get(c_name, c_name)
-
     m_tags_str = make_tags_str(m_attrs)
-    m_header_content = f"""<span class="hex-title-text">{palace}宮：{m_display_name} {m_tags_str}</span><span>【主卦】</span>"""
+    # [修正] 排盤結果區顯示全名 (m_name)，不使用簡稱
+    m_header_content = f"""<span class="hex-title-text">{palace}宮：{m_name} {m_tags_str}</span><span>【主卦】</span>"""
     
     c_tags_str = make_tags_str(c_attrs)
     if has_moving:
-        c_header_content = f"""<span class="hex-title-text">{c_palace}宮：{c_display_name} {c_tags_str}</span><span>【變卦】</span>"""
+        c_header_content = f"""<span class="hex-title-text">{c_palace}宮：{c_name} {c_tags_str}</span><span>【變卦】</span>"""
     else:
         c_header_content = f"""<span class="hex-title-text">&nbsp;</span><span>【變卦】</span>"""
 

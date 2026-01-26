@@ -4,9 +4,9 @@ import random
 from lunar_python import Solar, Lunar
 
 # ==============================================================================
-# 0. 網頁設定 & CSS (視覺優化：按鈕紅底白字 + 無縫表格)
+# 0. 網頁設定 & CSS (視覺優化：按鈕紅底白字 + 無縫表格 + 星煞對齊)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-精修版v15", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-連動版v16", layout="wide")
 
 st.markdown("""
 <style>
@@ -362,7 +362,6 @@ def calculate_hexagram(numbers, day_stem, day_branch):
 
 with st.sidebar:
     st.header("設定")
-    # [修正 1] 提示詞更新
     question_input = st.text_input("輸入問題", placeholder="請輸入占卜問題...")
     date_mode = st.radio("日期模式", ["自動 (Current)", "指定西曆", "手動干支"])
     
@@ -409,46 +408,53 @@ with st.sidebar:
         
     st.write(f"當前：{gz_year}年 {gz_month}月 {gz_day}日 {gz_hour}時")
 
-    # [修正 3] 模式更名為「三錢起卦」
     st.subheader("起卦方式")
     method = st.radio("模式", ["三錢起卦", "卦名起卦"], horizontal=True)
 
+    # 1. 狀態初始化：單一真值來源 line_values
+    if "line_values" not in st.session_state:
+        st.session_state.line_values = [random.choice([6, 7, 8, 9]) for _ in range(6)]
+
     input_vals = []
     
-    # 隨機初始化數值 (第一次載入時)
-    if "init_random_vals" not in st.session_state:
-        st.session_state.init_random_vals = [random.choice([6, 7, 8, 9]) for _ in range(6)]
-    
-    # 預先計算亂數對應的卦名 (用於切換時自動填入)
-    rand_m_name, rand_c_name, _, _, _, _, _, _ = calculate_hexagram(st.session_state.init_random_vals, "甲", "子")
+    # 預先計算當前數值對應的卦名 (供卦名模式顯示)
+    curr_m_name, curr_c_name, _, _, _, _, _, _ = calculate_hexagram(st.session_state.line_values, "甲", "子")
 
     if method == "三錢起卦":
         st.write("由初爻至上爻")
         cols = st.columns(6)
-        def_vals = st.session_state.init_random_vals
         
-        # [修正 2] 爻位標籤更新
+        # [修正 2] 嚴格限制 6~9
         yao_labels = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"]
-        
-        # [修正 1] 放寬限制為 0~99 讓錯誤訊息能顯示
+        new_values = []
         for i in range(6):
-            # key使用 'n{i}' 保持狀態
-            val = cols[i].number_input(yao_labels[i], 0, 99, def_vals[i], key=f"n{i}")
+            val = cols[i].number_input(
+                yao_labels[i], 
+                min_value=6, 
+                max_value=9, 
+                value=st.session_state.line_values[i], 
+                key=f"n{i}"
+            )
+            new_values.append(val)
+        
+        # 更新狀態 (若數值有變)
+        if new_values != st.session_state.line_values:
+            st.session_state.line_values = new_values
+            # 這裡不需rerun，Streamlit 下一次循環會用新值
             
-            # [修正 1] 嚴格檢查並阻擋錯誤輸入
-            if val not in [6, 7, 8, 9]:
-                st.error(f"【錯誤】{yao_labels[i]}數值必須等於6～9之間的正整數")
-                st.stop()
-            input_vals.append(val)
-            
+        input_vals = st.session_state.line_values
+
     else: # 卦名起卦
         col_m, col_c = st.columns(2)
-        # [修正 2] 自動填入剛才亂數的卦名
-        main_hex_input = col_m.text_input("主卦 (必填)", value=rand_m_name)
-        # 變卦若無變爻則為空，若有則填入
-        change_val_str = rand_c_name if rand_c_name != rand_m_name else ""
-        change_hex_input = col_c.text_input("變卦 (選填)", value=change_val_str)
         
+        # [修正 1] 自動填入當前數值對應的卦名
+        main_hex_input = col_m.text_input("主卦 (必填)", value=curr_m_name)
+        
+        # 變卦顯示邏輯：若無變爻(變卦同主卦)，則顯示空白，否則顯示變卦名
+        default_c_val = curr_c_name if curr_c_name != curr_m_name else ""
+        change_hex_input = col_c.text_input("變卦 (選填)", value=default_c_val)
+        
+        # 用戶輸入後，嘗試解析回數字並更新 session_state
         if main_hex_input:
             m_code = get_code_from_name(main_hex_input)
             if m_code:
@@ -458,25 +464,31 @@ with st.sidebar:
                     if temp_c:
                         c_code = temp_c
                 
-                # 自動推算數字
+                # 反推數字
+                temp_vals = []
                 for i in range(6):
                     m = m_code[i]
                     c = c_code[i]
-                    if m == 0 and c == 0: input_vals.append(8)
-                    elif m == 1 and c == 1: input_vals.append(7)
-                    elif m == 0 and c == 1: input_vals.append(6)
-                    elif m == 1 and c == 0: input_vals.append(9)
+                    if m == 0 and c == 0: temp_vals.append(8)
+                    elif m == 1 and c == 1: temp_vals.append(7)
+                    elif m == 0 and c == 1: temp_vals.append(6)
+                    elif m == 1 and c == 0: temp_vals.append(9)
+                
+                # 更新 Session State
+                st.session_state.line_values = temp_vals
+                input_vals = temp_vals
             else:
                 st.error("找不到主卦名稱，請確認輸入(例如: 需, 水天需)")
+                input_vals = st.session_state.line_values # 保持原值
         else:
-            input_vals = [7,7,7,7,7,7]
+            input_vals = st.session_state.line_values
 
     st.markdown("<br>", unsafe_allow_html=True)
     
     # 按鈕位置
     btn = st.button("排盤", type="primary")
 
-    # [修正 4-8] 指南文案全面更新
+    # 指南文案
     st.markdown("---")
     st.markdown("""
 ### 📥 起卦操作指南 (三錢法)
@@ -502,7 +514,8 @@ if btn or True:
             st.error("【錯誤】月柱與日柱為必填項目，請完整輸入干支（如：甲子）")
             st.stop()
 
-    if len(input_vals) < 6: input_vals = [7,7,7,7,7,7]
+    # 確保有值
+    if not input_vals: input_vals = [7,7,7,7,7,7]
         
     m_name, c_name, palace, lines_data, p_el, m_attrs, c_attrs, c_palace = calculate_hexagram(input_vals, day_stem, day_branch)
     
@@ -536,13 +549,16 @@ if btn or True:
     
     date_html_str = " ".join(date_parts)
 
+    # [修正 3] 星煞對齊優化：外層 Flex 置中，內層 text-align: left
     info_html = f"""<div class="info-box">
 <div style="text-align:center; font-size:1.1em; font-weight:bold; margin-bottom:10px;">
 {date_html_str} &nbsp;&nbsp; (旬空: <span>{voids}</span>)
 </div>
-<div style="font-size:0.95em; line-height:1.7; text-align:center;">
-{stars_row1_str}<br>
-{stars_row2_str}
+<div style="display:flex; justify-content:center;">
+    <div style="text-align:left; font-size:0.95em; line-height:1.7;">
+        {stars_row1_str}<br>
+        {stars_row2_str}
+    </div>
 </div>
 </div>"""
 

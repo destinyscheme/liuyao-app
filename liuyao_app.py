@@ -6,7 +6,7 @@ from lunar_python import Solar, Lunar
 # ==============================================================================
 # 0. 網頁設定 & CSS
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-精修版v19", layout="wide")
+st.set_page_config(page_title="六爻排盤", layout="wide")
 
 st.markdown("""
 <style>
@@ -423,17 +423,22 @@ with st.sidebar:
         yao_labels = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"]
         new_values = []
         for i in range(6):
-            # [修正] 嚴格限制範圍 6-9，整數 step=1
+            # [修正] 移除help (移除問號), 寬容範圍0-99以實現自定義錯誤文字
             val = cols[i].number_input(
                 yao_labels[i], 
-                min_value=6, 
-                max_value=9, 
+                min_value=0, 
+                max_value=99, 
                 step=1,
                 format="%d",
                 value=int(st.session_state.line_values[i]), 
-                key=f"n{i}",
-                help="僅限輸入 6 ~ 9 (6:老陰, 7:少陽, 8:少陰, 9:老陽)"
+                key=f"n{i}"
             )
+            
+            # [修正] 自定義錯誤攔截
+            if val < 6 or val > 9:
+                st.error(f"【錯誤】{yao_labels[i]}：僅限輸入6~9")
+                st.stop()
+                
             new_values.append(val)
         
         if new_values != st.session_state.line_values:
@@ -554,12 +559,16 @@ if btn or True:
             tags += f'<span class="attr-tag">{a}</span>'
         return tags
 
+    # 確保排盤結果顯示全名
+    m_display_name = m_name
+    c_display_name = c_name
+
     m_tags_str = make_tags_str(m_attrs)
-    m_header_content = f"""<span class="hex-title-text">{palace}宮：{m_name} {m_tags_str}</span><span>【主卦】</span>"""
+    m_header_content = f"""<span class="hex-title-text">{palace}宮：{m_display_name} {m_tags_str}</span><span>【主卦】</span>"""
     
     c_tags_str = make_tags_str(c_attrs)
     if has_moving:
-        c_header_content = f"""<span class="hex-title-text">{c_palace}宮：{c_name} {c_tags_str}</span><span>【變卦】</span>"""
+        c_header_content = f"""<span class="hex-title-text">{c_palace}宮：{c_display_name} {c_tags_str}</span><span>【變卦】</span>"""
     else:
         c_header_content = f"""<span class="hex-title-text">&nbsp;</span><span>【變卦】</span>"""
 

@@ -6,7 +6,7 @@ from lunar_python import Solar, Lunar
 # ==============================================================================
 # 0. 網頁設定 & CSS
 # ==============================================================================
-st.set_page_config(page_title="六爻排盤", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-精修版v19", layout="wide")
 
 st.markdown("""
 <style>
@@ -157,16 +157,11 @@ HEX_INFO = {
     "兌為澤": ("兌", 6), "澤水困": ("兌", 1), "澤地萃": ("兌", 2), "澤山咸": ("兌", 3), "水山蹇": ("兌", 4), "地山謙": ("兌", 5), "雷山小過": ("兌", 7), "雷澤歸妹": ("兌", 8),
 }
 
-# 雙向映射與簡稱邏輯 [優化]
+# 雙向映射與簡稱邏輯
 SHORT_NAME_MAP = {} # 簡稱 -> 全名 (輸入用)
 FULL_TO_SHORT_MAP = {} # 全名 -> 簡稱 (顯示用)
 
 for full_name in HEX_INFO.keys():
-    # 邏輯：
-    # 1. "乾為天" -> "乾" (含"為"字，取首字)
-    # 2. "風澤中孚" -> "中孚" (4字，取後兩字)
-    # 3. "水天需" -> "需" (3字，取後一字)
-    
     if "為" in full_name:
         short_name = full_name[0]
     elif len(full_name) == 4:
@@ -175,9 +170,7 @@ for full_name in HEX_INFO.keys():
         short_name = full_name[-1]
     
     SHORT_NAME_MAP[short_name] = full_name
-    # 容錯：若使用者輸入全名也要能查到
     SHORT_NAME_MAP[full_name] = full_name
-    
     FULL_TO_SHORT_MAP[full_name] = short_name
 
 STAR_A_TABLE = {"子": ("未", "亥"), "丑": ("未", "子"), "寅": ("戌", "丑"), "卯": ("戌", "寅"), "辰": ("戌", "卯"), "巳": ("丑", "辰"), "午": ("丑", "巳"), "未": ("丑", "午"), "申": ("辰", "未"), "酉": ("辰", "申"), "戌": ("辰", "酉"), "亥": ("未", "戌")}
@@ -225,7 +218,6 @@ def get_hexagram_name_by_code(upper, lower):
 
 def get_code_from_name(name):
     name = name.strip()
-    # 先查是否為合法名稱（全名或簡稱）
     full_name = SHORT_NAME_MAP.get(name, None)
     
     if not full_name:
@@ -420,10 +412,8 @@ with st.sidebar:
 
     input_vals = []
     
-    # 預算卦名供自動填入
     curr_m_name, curr_c_name, _, _, _, _, _, _ = calculate_hexagram(st.session_state.line_values, "甲", "子")
     
-    # [修正] 側邊欄輸入框優先顯示「簡稱」
     curr_m_short = FULL_TO_SHORT_MAP.get(curr_m_name, curr_m_name)
     curr_c_short = FULL_TO_SHORT_MAP.get(curr_c_name, curr_c_name) if curr_c_name != curr_m_name else ""
 
@@ -433,12 +423,16 @@ with st.sidebar:
         yao_labels = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"]
         new_values = []
         for i in range(6):
+            # [修正] 嚴格限制範圍 6-9，整數 step=1
             val = cols[i].number_input(
                 yao_labels[i], 
                 min_value=6, 
                 max_value=9, 
-                value=st.session_state.line_values[i], 
-                key=f"n{i}"
+                step=1,
+                format="%d",
+                value=int(st.session_state.line_values[i]), 
+                key=f"n{i}",
+                help="僅限輸入 6 ~ 9 (6:老陰, 7:少陽, 8:少陰, 9:老陽)"
             )
             new_values.append(val)
         
@@ -453,7 +447,6 @@ with st.sidebar:
         change_hex_input = col_c.text_input("變卦 (選填)", value=curr_c_short)
         
         if main_hex_input:
-            # 支援輸入簡稱或全名 (透過 SHORT_NAME_MAP 查詢)
             m_code = get_code_from_name(main_hex_input)
             if m_code:
                 c_code = m_code 
@@ -562,7 +555,6 @@ if btn or True:
         return tags
 
     m_tags_str = make_tags_str(m_attrs)
-    # [修正] 排盤結果區顯示全名 (m_name)，不使用簡稱
     m_header_content = f"""<span class="hex-title-text">{palace}宮：{m_name} {m_tags_str}</span><span>【主卦】</span>"""
     
     c_tags_str = make_tags_str(c_attrs)

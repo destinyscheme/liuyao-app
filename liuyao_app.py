@@ -1,12 +1,13 @@
 import streamlit as st
 import datetime
 import random
+import pandas as pd
 from lunar_python import Solar, Lunar
 
 # ==============================================================================
 # 0. 網頁設定 & CSS
 # ==============================================================================
-st.set_page_config(page_title="六爻排盤", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-匯出強化版v22", layout="wide")
 
 st.markdown("""
 <style>
@@ -50,27 +51,27 @@ div.stButton > button:hover {
     color: #ffffff !important;
 }
 
-/* 表格樣式 */
+/* [修正 2] 表格樣式：外框保留，內框全除 */
 .hex-table { 
     width: 100%; 
     border-collapse: collapse; 
     text-align: center; 
     font-size: 18px; 
     table-layout: fixed; 
-    border: 2px solid #000; 
+    border: 2px solid #000; /* 保留外框 */
     margin-top: 10px;
 }
 .hex-table td { 
     padding: 8px 2px;
-    border-bottom: 1px solid #000; 
-    border-right: 1px solid #000; 
+    border: none !important; /* 刪除所有內框線 */
     vertical-align: middle; 
     color: #000; 
 }
+/* 移除最後一列與最後一欄的邊框設定(因為已經全部none了，這裡只是保險) */
 .hex-table tr:last-child td { border-bottom: none; }
 .hex-table td:last-child { border-right: none; }
 
-/* 無縫表格樣式 */
+/* 無縫表格樣式 (雖然內框已除，但保留類別以防萬一需要微調) */
 .td-main { border-right: none !important; }
 .td-arrow { border-left: none !important; border-right: none !important; }
 .td-change { border-left: none !important; }
@@ -79,7 +80,7 @@ div.stButton > button:hover {
     background-color: #ffffff; 
     font-weight: bold; 
     color: #000; 
-    border-bottom: 2px solid #000; 
+    border-bottom: none !important; /* 標題列下方的線也移除 */
     padding-bottom: 10px;
     vertical-align: bottom !important;
 }
@@ -423,7 +424,6 @@ with st.sidebar:
         yao_labels = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"]
         new_values = []
         for i in range(6):
-            # [修正] 恢復使用 min/max constraint
             val = cols[i].number_input(
                 yao_labels[i], 
                 min_value=6, 
@@ -466,7 +466,6 @@ with st.sidebar:
                 st.session_state.line_values = temp_vals
                 input_vals = temp_vals
             else:
-                # [修正 1] 錯誤提示文字更新
                 st.error("找不到主卦名稱，請確認輸入(例如: 既濟 或 水火既濟)")
                 input_vals = st.session_state.line_values
         else:
@@ -554,16 +553,12 @@ if btn or True:
             tags += f'<span class="attr-tag">{a}</span>'
         return tags
 
-    # 結果區顯示全名
-    m_display_name = m_name
-    c_display_name = c_name
-
-    m_tags_str = make_tags_str(m_attrs)
-    m_header_content = f"""<span class="hex-title-text">{palace}宮：{m_display_name} {m_tags_str}</span><span>【主卦】</span>"""
+    # [修正] 排盤結果區顯示全名 (m_name)，不使用簡稱
+    m_header_content = f"""<span class="hex-title-text">{palace}宮：{m_name} {m_tags_str}</span><span>【主卦】</span>"""
     
     c_tags_str = make_tags_str(c_attrs)
     if has_moving:
-        c_header_content = f"""<span class="hex-title-text">{c_palace}宮：{c_display_name} {c_tags_str}</span><span>【變卦】</span>"""
+        c_header_content = f"""<span class="hex-title-text">{c_palace}宮：{c_name} {c_tags_str}</span><span>【變卦】</span>"""
     else:
         c_header_content = f"""<span class="hex-title-text">&nbsp;</span><span>【變卦】</span>"""
 
@@ -623,5 +618,68 @@ if btn or True:
         
     table_html += "</table>"
     
-    final_html = question_html + info_html + table_html
+    # [修正 1] 新增匯出區塊 (Excel/Word/Image)
+    st.markdown("### 💾 匯出排盤結果")
+    
+    export_format = st.radio("選擇匯出格式：", ["試算表 (Excel/CSV)", "文件 (Word/HTML)", "圖檔 (說明)"], horizontal=True)
+    
+    # 準備資料 DataFrame
+    export_data = []
+    for line in lines_data[::-1]: # 調整順序為 初爻 -> 上爻
+        row_dict = {
+            "六神": line['god'],
+            "藏伏": line['hidden'],
+            "主卦": f"{line['main']['rel']}{line['main']['branch']}{line['main']['el']} ({line['main']['shiying']})",
+            "變動": "O->" if line['move'] and line['main']['type']=='yang' else ("X->" if line['move'] else ""),
+            "變卦": f"{line['change']['rel']}{line['change']['branch']}{line['change']['el']}" if has_moving else "",
+            "主卦納音": line['main']['nayin'],
+            "變卦納音": line['change']['nayin'] if has_moving else ""
+        }
+        export_data.append(row_dict)
+    
+    df_export = pd.DataFrame(export_data)
+    
+    if export_format == "試算表 (Excel/CSV)":
+        csv = df_export.to_csv(index=False).encode('utf-8-sig')
+        st.download_button(
+            label="下載 CSV 檔案",
+            data=csv,
+            file_name=f'liuyao_result_{datetime.datetime.now().strftime("%Y%m%d_%H%M")}.csv',
+            mime='text/csv',
+        )
+        
+    elif export_format == "文件 (Word/HTML)":
+        # 生成完整的 HTML 供下載，可用 Word 開啟
+        full_html_doc = f"""
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <style>
+                body {{ font-family: "KaiTi", serif; }}
+                table {{ border-collapse: collapse; width: 100%; }}
+                td, th {{ border: 1px solid #000; padding: 8px; text-align: center; }}
+                .title {{ font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 20px; }}
+            </style>
+        </head>
+        <body>
+            <div class="title">六爻排盤結果</div>
+            <p><b>問題：</b>{question_input}</p>
+            <p><b>時間：</b>{date_html_str} (旬空: {voids})</p>
+            <p>{stars_row1_str}</p>
+            <p>{stars_row2_str}</p>
+            <hr>
+            {table_html.replace('width="100%"', 'width="100%" border="1"')}
+        </body>
+        </html>
+        """
+        st.download_button(
+            label="下載 HTML 報告 (可由 Word 開啟)",
+            data=full_html_doc,
+            file_name=f'liuyao_report_{datetime.datetime.now().strftime("%Y%m%d_%H%M")}.html',
+            mime='text/html',
+        )
+        
+    else: # 圖檔
+        st.info("💡 提示：由於網頁技術限制，最佳的存圖方式是使用瀏覽器的 **「列印 -> 另存為 PDF」** 或 **「螢幕截圖」** 功能，以保留最完整的排盤樣式。")
+
     st.markdown(final_html, unsafe_allow_html=True)

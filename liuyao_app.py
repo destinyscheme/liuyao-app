@@ -6,7 +6,7 @@ from lunar_python import Solar, Lunar
 # ==============================================================================
 # 0. 網頁設定 & CSS (視覺優化：外框保留，內框全除)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-精修版v24", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-精修版v25", layout="wide")
 
 st.markdown("""
 <style>
@@ -50,7 +50,7 @@ div.stButton > button:hover {
     color: #ffffff !important;
 }
 
-/* [修改重點] 表格樣式：保留外框，刪除所有內框 */
+/* 表格樣式：保留外框，刪除所有內框 */
 .hex-table { 
     width: 100%; 
     border-collapse: collapse; 
@@ -63,7 +63,7 @@ div.stButton > button:hover {
 
 .hex-table td { 
     padding: 8px 2px;
-    border: none !important; /* 移除所有儲存格的邊框 (包含直線與橫線) */
+    border: none !important; /* 移除所有儲存格的邊框 */
     vertical-align: middle; 
     color: #000; 
 }
@@ -73,12 +73,12 @@ div.stButton > button:hover {
     background-color: #ffffff; 
     font-weight: bold; 
     color: #000; 
-    border-bottom: none !important; /* 移除標題列下方的橫線 */
+    border-bottom: none !important;
     padding-bottom: 10px;
     vertical-align: bottom !important;
 }
 
-/* 輔助類別 (雖然無邊框，但保留結構設定) */
+/* 輔助類別 */
 .td-main { border-right: none !important; }
 .td-arrow { border-left: none !important; border-right: none !important; }
 .td-change { border-left: none !important; }
@@ -96,14 +96,6 @@ div.stButton > button:hover {
 .attr-tag { font-size: 0.7em; border: 1px solid #000; padding: 1px 4px; margin-left: 5px; font-weight: normal; }
 .hex-title-text { font-size: 1.1em; display: block; margin-bottom: 5px; }
 
-/* 指南區塊樣式 */
-.guide-container {
-    border-top: 1px solid #000;
-    padding-top: 15px;
-    margin-top: 10px;
-    font-size: 0.9em;
-    color: #000;
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -133,7 +125,6 @@ NAYIN_TABLE = {
     "戊午": "天上火", "己未": "天上火", "庚申": "石榴木", "辛酉": "石榴木", "壬戌": "大海水", "癸亥": "大海水"
 }
 
-# 八卦編碼 (由下往上：初爻, 二爻, 三爻)
 TRIGRAMS = {
     "乾": {"code": [1, 1, 1], "element": "金", "stems": ["甲", "壬"], "branches": ["子", "寅", "辰", "午", "申", "戌"]},
     "兌": {"code": [1, 1, 0], "element": "金", "stems": ["丁", "丁"], "branches": ["巳", "卯", "丑", "亥", "酉", "未"]}, 
@@ -156,9 +147,8 @@ HEX_INFO = {
     "兌為澤": ("兌", 6), "澤水困": ("兌", 1), "澤地萃": ("兌", 2), "澤山咸": ("兌", 3), "水山蹇": ("兌", 4), "地山謙": ("兌", 5), "雷山小過": ("兌", 7), "雷澤歸妹": ("兌", 8),
 }
 
-# 雙向映射與簡稱邏輯
-SHORT_NAME_MAP = {} # 簡稱 -> 全名 (輸入用)
-FULL_TO_SHORT_MAP = {} # 全名 -> 簡稱 (顯示用)
+SHORT_NAME_MAP = {}
+FULL_TO_SHORT_MAP = {}
 
 for full_name in HEX_INFO.keys():
     if "為" in full_name:
@@ -219,28 +209,22 @@ def get_code_from_name(name):
     name = name.strip()
     full_name = SHORT_NAME_MAP.get(name, None)
     
-    if not full_name:
-        return None
+    if not full_name: return None
     
     tri_names = list(TRIGRAMS.keys())
-    target_upper = ""
-    target_lower = ""
-    
+    target_upper, target_lower = "", ""
     found = False
+    
     for up in tri_names:
         for lo in tri_names:
             if get_hexagram_name_by_code(up, lo) == full_name:
-                target_upper = up
-                target_lower = lo
+                target_upper, target_lower = up, lo
                 found = True
                 break
         if found: break
         
     if not found: return None
-    
-    lower_code = TRIGRAMS[target_lower]["code"]
-    upper_code = TRIGRAMS[target_upper]["code"]
-    return lower_code + upper_code
+    return TRIGRAMS[target_lower]["code"] + TRIGRAMS[target_upper]["code"]
 
 def get_line_details(tri_name, line_idx, is_outer):
     branches = TRIGRAMS[tri_name]["branches"]
@@ -269,15 +253,10 @@ def calculate_hexagram(numbers, day_stem, day_branch):
             
     tri_map = {tuple(v["code"]): k for k, v in TRIGRAMS.items()}
     
-    m_lower_code = tuple(main_code[:3]) 
-    m_upper_code = tuple(main_code[3:])
-    c_lower_code = tuple(change_code[:3])
-    c_upper_code = tuple(change_code[3:])
-    
-    m_lower = tri_map.get(m_lower_code, "未知")
-    m_upper = tri_map.get(m_upper_code, "未知")
-    c_lower = tri_map.get(c_lower_code, "未知")
-    c_upper = tri_map.get(c_upper_code, "未知")
+    m_lower = tri_map.get(tuple(main_code[:3]), "未知")
+    m_upper = tri_map.get(tuple(main_code[3:]), "未知")
+    c_lower = tri_map.get(tuple(change_code[:3]), "未知")
+    c_upper = tri_map.get(tuple(change_code[3:]), "未知")
     
     m_name = get_hexagram_name_by_code(m_upper, m_lower)
     c_name = get_hexagram_name_by_code(c_upper, c_lower)
@@ -551,7 +530,6 @@ if btn or True:
             tags += f'<span class="attr-tag">{a}</span>'
         return tags
 
-    # 排盤結果顯示全名
     m_display_name = m_name
     c_display_name = c_name
 
@@ -622,3 +600,66 @@ if btn or True:
     
     final_html = question_html + info_html + table_html
     st.markdown(final_html, unsafe_allow_html=True)
+
+    # --------------------------------------------------------------------------
+    # 4. 新增：複製用文字資料 (AI 判讀輔助)
+    # --------------------------------------------------------------------------
+    st.markdown("### 📋 複製用文字資料 (AI 判讀輔助)")
+    
+    # 建構純文字字串
+    copy_text = f"【問題】：{question_input if question_input else '未輸入'}\n"
+    copy_text += f"【時間】：{gz_year}年 {gz_month}月 {gz_day}日 {gz_hour}時\n"
+    copy_text += f"【旬空】：{voids}\n"
+    copy_text += f"【神煞】：{stars_row1_str}\n          {stars_row2_str}\n\n"
+    
+    copy_text += f"【主卦】：{palace}宮-{m_display_name}"
+    if m_attrs: copy_text += f" ({','.join(m_attrs)})"
+    copy_text += "\n"
+    
+    if has_moving:
+        copy_text += f"【變卦】：{c_palace}宮-{c_display_name}"
+        if c_attrs: copy_text += f" ({','.join(c_attrs)})"
+        copy_text += "\n"
+    
+    copy_text += "\n六神  伏神      【主卦】             【變卦】          納音(主->變)\n"
+    copy_text += "-" * 65 + "\n"
+    
+    for i in range(5, -1, -1):
+        line = lines_data[i]
+        
+        # 六神
+        god_str = line['god']
+        
+        # 藏伏 (固定長度)
+        hidden_val = line['hidden'] if line['hidden'] else ""
+        hidden_str = f"{hidden_val:<7}" 
+        
+        # 主卦 (六親+地支+五行 + 世應)
+        m = line['main']
+        m_base = f"{m['rel']}{m['branch']}{m['el']}"
+        shiying_str = f"({m['shiying']})" if m['shiying'] else "    "
+        main_str = f"{m_base}{shiying_str}"
+        main_str_padded = f"{main_str:<10}" # 手動對齊
+        
+        # 變卦
+        c = line['change']
+        change_str = ""
+        move_symbol = " .. "
+        
+        if line['move']:
+            move_symbol = " -> "
+            change_str = f"{c['rel']}{c['branch']}{c['el']}"
+        
+        change_str_padded = f"{change_str:<8}"
+        
+        # 納音
+        m_ny = m['nayin'][-3:] if m['nayin'] else ""
+        c_ny = c['nayin'][-3:] if (c['nayin'] and has_moving) else ""
+        nayin_str = m_ny
+        if line['move'] and c_ny:
+            nayin_str += f" -> {c_ny}"
+            
+        row_str = f"{god_str}  {hidden_str} {main_str_padded} {move_symbol} {change_str_padded} | {nayin_str}"
+        copy_text += row_str + "\n"
+        
+    st.code(copy_text, language='text')

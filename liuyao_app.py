@@ -4,9 +4,9 @@ import random
 from lunar_python import Solar, Lunar
 
 # ==============================================================================
-# 0. 網頁設定 & CSS
+# 0. 網頁設定 & CSS (視覺優化：外框保留，內框全除)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-精修版v21", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-精修版v24", layout="wide")
 
 st.markdown("""
 <style>
@@ -50,39 +50,38 @@ div.stButton > button:hover {
     color: #ffffff !important;
 }
 
-/* 表格樣式 */
+/* [修改重點] 表格樣式：保留外框，刪除所有內框 */
 .hex-table { 
     width: 100%; 
     border-collapse: collapse; 
     text-align: center; 
     font-size: 18px; 
     table-layout: fixed; 
-    border: 2px solid #000; 
+    border: 2px solid #000 !important; /* 保留最外層邊框 */
     margin-top: 10px;
 }
+
 .hex-table td { 
     padding: 8px 2px;
-    border-bottom: 1px solid #000; 
-    border-right: 1px solid #000; 
+    border: none !important; /* 移除所有儲存格的邊框 (包含直線與橫線) */
     vertical-align: middle; 
     color: #000; 
 }
-.hex-table tr:last-child td { border-bottom: none; }
-.hex-table td:last-child { border-right: none; }
 
-/* 無縫表格樣式 */
-.td-main { border-right: none !important; }
-.td-arrow { border-left: none !important; border-right: none !important; }
-.td-change { border-left: none !important; }
-
+/* 標題列樣式 */
 .header-row td { 
     background-color: #ffffff; 
     font-weight: bold; 
     color: #000; 
-    border-bottom: 2px solid #000; 
+    border-bottom: none !important; /* 移除標題列下方的橫線 */
     padding-bottom: 10px;
     vertical-align: bottom !important;
 }
+
+/* 輔助類別 (雖然無邊框，但保留結構設定) */
+.td-main { border-right: none !important; }
+.td-arrow { border-left: none !important; border-right: none !important; }
+.td-change { border-left: none !important; }
 
 /* 爻條樣式 */
 .bar-yang { display: inline-block; width: 100px; height: 14px; background-color: #000; }
@@ -423,7 +422,6 @@ with st.sidebar:
         yao_labels = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"]
         new_values = []
         for i in range(6):
-            # [修正] 恢復使用 min/max constraint
             val = cols[i].number_input(
                 yao_labels[i], 
                 min_value=6, 
@@ -466,7 +464,6 @@ with st.sidebar:
                 st.session_state.line_values = temp_vals
                 input_vals = temp_vals
             else:
-                # [修正 1] 錯誤提示文字更新
                 st.error("找不到主卦名稱，請確認輸入(例如: 既濟 或 水火既濟)")
                 input_vals = st.session_state.line_values
         else:
@@ -554,7 +551,7 @@ if btn or True:
             tags += f'<span class="attr-tag">{a}</span>'
         return tags
 
-    # 結果區顯示全名
+    # 排盤結果顯示全名
     m_display_name = m_name
     c_display_name = c_name
 

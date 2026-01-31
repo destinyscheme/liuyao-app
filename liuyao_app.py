@@ -6,7 +6,7 @@ from lunar_python import Solar, Lunar
 # ==============================================================================
 # 0. 網頁設定 & CSS (視覺優化：外框保留，內框全除)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-精修版v30", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-精修版v31", layout="wide")
 
 st.markdown("""
 <style>
@@ -639,6 +639,9 @@ if btn or True:
         if c_attrs: copy_text += f" ({','.join(c_attrs)})"
         copy_text += "\n"
     
+    # [修正] 標題與下方內容對齊
+    # 主卦: 文字+符號 (靠左)
+    # 變卦: 符號+文字 (靠右)
     copy_text += "\n六神  藏伏      【主卦】          【變卦】        納音(主->變)\n"
     copy_text += "-" * 65 + "\n"
     
@@ -665,7 +668,7 @@ if btn or True:
         main_str = wide_pad(main_full, 18, 'left')
         
         # 4. 變卦箭頭
-        move_symbol = " -> " if line['move'] else " .. "
+        move_symbol = " -> " if line['move'] else "    " # [修正] 靜爻使用4空格確保對齊
         
         # 5. 變卦: 符號 + 文字靠右
         # 只要有變卦(has_moving)，每一列都顯示變卦內容(即使是靜爻)
@@ -676,7 +679,7 @@ if btn or True:
             
             # 文字部分固定寬度靠右 (約10格)
             c_text_padded = wide_pad(c_text, 10, 'right')
-            # 組合: [符號] [..文字]
+            # [修正] 組合: [符號] [..文字] (文字靠右對齊)
             change_content = f"{c_sym} {c_text_padded}"
         else:
             change_content = ""

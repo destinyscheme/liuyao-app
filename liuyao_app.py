@@ -6,7 +6,7 @@ from lunar_python import Solar, Lunar
 # ==============================================================================
 # 0. 網頁設定 & CSS (視覺優化：外框保留，內框全除)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-精修版v29", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-精修版v30", layout="wide")
 
 st.markdown("""
 <style>
@@ -498,11 +498,9 @@ if btn or True:
     star_list_row1 = [f"天喜-{s_a[0]}", f"天醫-{s_a[1]}", f"祿神-{s_b[0]}", f"羊刃-{s_b[1]}", f"文昌-{s_b[2]}", f"貴人-{s_b[3]}"]
     star_list_row2 = [f"桃花-{s_c[0]}", f"謀星-{s_c[1]}", f"將星-{s_c[2]}", f"驛馬-{s_c[3]}", f"華蓋-{s_c[4]}", f"劫煞-{s_c[5]}", f"災煞-{s_c[6]}"]
 
-    # [修正 1] HTML顯示：星煞間距加大 (3倍空格)
     stars_row1_html = "&nbsp;&nbsp;&nbsp;".join(star_list_row1)
     stars_row2_html = "&nbsp;&nbsp;&nbsp;".join(star_list_row2)
     
-    # [修正 1] 文字複製：使用一般空格
     stars_row1_text = "   ".join(star_list_row1)
     stars_row2_text = "   ".join(star_list_row2)
 
@@ -607,18 +605,23 @@ if btn or True:
     st.markdown(final_html, unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
-    # 4. 複製用文字資料 (垂直對齊優化版)
+    # 4. 複製用文字資料 (垂直對齊+佈局優化版)
     # --------------------------------------------------------------------------
     st.markdown("### 📋 複製用文字資料 (AI 判讀輔助)")
     
     # 輔助函數：計算考慮全形字的字串填充
-    # 中文字元計算為 2 單位寬度，ASCII 計算為 1 單位
-    def wide_pad(text, width):
+    # align: 'left' (靠左, 右側補空), 'right' (靠右, 左側補空)
+    def wide_pad(text, width, align='left'):
         count = 0
         for char in text:
             if ord(char) > 127: count += 2
             else: count += 1
-        return text + " " * (width - count)
+        padding = " " * max(0, width - count)
+        
+        if align == 'left':
+            return text + padding
+        else:
+            return padding + text
 
     copy_text = "依據上傳檔案的排盤圖示，進行完整解卦，而上傳檔案的文字內容如下：\n\n"
     
@@ -636,57 +639,59 @@ if btn or True:
         if c_attrs: copy_text += f" ({','.join(c_attrs)})"
         copy_text += "\n"
     
-    # [修正 2] 伏神改藏伏 & 垂直對齊表頭
     copy_text += "\n六神  藏伏      【主卦】          【變卦】        納音(主->變)\n"
     copy_text += "-" * 65 + "\n"
     
     for i in range(5, -1, -1):
         line = lines_data[i]
         
-        # 六神
-        god_str = wide_pad(line['god'], 6) # 2 chars = 4 width + 2 padding
+        # 1. 六神 (靠左)
+        god_str = wide_pad(line['god'], 6, 'left')
         
-        # 藏伏
+        # 2. 藏伏 (靠左)
         hidden_val = line['hidden'] if line['hidden'] else ""
-        hidden_str = wide_pad(hidden_val, 10) 
+        hidden_str = wide_pad(hidden_val, 10, 'left')
         
-        # [修正 3] 陰陽符號
+        # 3. 主卦: 文字靠左 + 符號 + 世應
         m = line['main']
+        m_text = f"{m['rel']}{m['branch']}{m['el']}"
         m_sym = "⚊" if m['type'] == 'yang' else "⚋"
+        m_shi = f"({m['shiying']})" if m['shiying'] else "    "
         
-        m_base = f"{m['rel']}{m['branch']}{m['el']}"
-        shiying_str = f"({m['shiying']})" if m['shiying'] else ""
+        # 文字部分固定寬度靠左 (約10格)
+        m_text_padded = wide_pad(m_text, 10, 'left')
+        # 組合: [文字..] [符號] [世應]
+        main_full = f"{m_text_padded} {m_sym} {m_shi}"
+        main_str = wide_pad(main_full, 18, 'left')
         
-        # 組合主卦字串並對齊
-        main_content = f"{m_base}{shiying_str} {m_sym}"
-        main_str = wide_pad(main_content, 18)
+        # 4. 變卦箭頭
+        move_symbol = " -> " if line['move'] else " .. "
         
-        # 變卦 [修正] 即使是靜爻，若有變卦也完整顯示 (Relation + Branch + Element + Symbol)
-        c = line['change']
-        change_str = ""
-        move_symbol = " .. "
-        
+        # 5. 變卦: 符號 + 文字靠右
+        # 只要有變卦(has_moving)，每一列都顯示變卦內容(即使是靜爻)
         if has_moving:
+            c = line['change']
+            c_text = f"{c['rel']}{c['branch']}{c['el']}"
             c_sym = "⚊" if c['type'] == 'yang' else "⚋"
-            change_content = f"{c['rel']}{c['branch']}{c['el']} {c_sym}"
             
-            if line['move']:
-                move_symbol = " -> "
-            else:
-                move_symbol = "    " # 靜爻的占位符
-                
-            change_str = change_content
+            # 文字部分固定寬度靠右 (約10格)
+            c_text_padded = wide_pad(c_text, 10, 'right')
+            # 組合: [符號] [..文字]
+            change_content = f"{c_sym} {c_text_padded}"
+        else:
+            change_content = ""
+            
+        change_str = wide_pad(change_content, 16, 'left')
         
-        change_str_padded = wide_pad(change_str, 16)
-        
-        # 納音 [修正] 靜爻也顯示納音變化
+        # 6. 納音
         m_ny = m['nayin'][-3:] if m['nayin'] else ""
         nayin_str = m_ny
         if has_moving:
-            c_ny = c['nayin'][-3:] if c['nayin'] else ""
-            nayin_str += f" -> {c_ny}"
+            c_ny = line['change']['nayin'][-3:] if line['change']['nayin'] else ""
+            if c_ny:
+                nayin_str += f" -> {c_ny}"
             
-        row_str = f"{god_str}{hidden_str}{main_str}{move_symbol}{change_str_padded}| {nayin_str}"
+        row_str = f"{god_str}{hidden_str}{main_str}{move_symbol}{change_str}| {nayin_str}"
         copy_text += row_str + "\n"
         
     st.code(copy_text, language='text')

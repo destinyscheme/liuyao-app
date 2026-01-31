@@ -4,9 +4,9 @@ import random
 from lunar_python import Solar, Lunar
 
 # ==============================================================================
-# 0. 網頁設定 & CSS (維持視覺架構)
+# 0. 網頁設定 & CSS (視覺優化：外框保留，內框全除)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-精修版v28", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-精修版v29", layout="wide")
 
 st.markdown("""
 <style>
@@ -498,11 +498,11 @@ if btn or True:
     star_list_row1 = [f"天喜-{s_a[0]}", f"天醫-{s_a[1]}", f"祿神-{s_b[0]}", f"羊刃-{s_b[1]}", f"文昌-{s_b[2]}", f"貴人-{s_b[3]}"]
     star_list_row2 = [f"桃花-{s_c[0]}", f"謀星-{s_c[1]}", f"將星-{s_c[2]}", f"驛馬-{s_c[3]}", f"華蓋-{s_c[4]}", f"劫煞-{s_c[5]}", f"災煞-{s_c[6]}"]
 
-    # [修正 1] HTML顯示：使用 3 個 non-breaking space 擴大間距
+    # [修正 1] HTML顯示：星煞間距加大 (3倍空格)
     stars_row1_html = "&nbsp;&nbsp;&nbsp;".join(star_list_row1)
     stars_row2_html = "&nbsp;&nbsp;&nbsp;".join(star_list_row2)
     
-    # [修正 1] 文字複製：使用一般空格 (間距適中即可)
+    # [修正 1] 文字複製：使用一般空格
     stars_row1_text = "   ".join(star_list_row1)
     stars_row2_text = "   ".join(star_list_row2)
 
@@ -661,23 +661,29 @@ if btn or True:
         main_content = f"{m_base}{shiying_str} {m_sym}"
         main_str = wide_pad(main_content, 18)
         
-        # 變卦
+        # 變卦 [修正] 即使是靜爻，若有變卦也完整顯示 (Relation + Branch + Element + Symbol)
         c = line['change']
         change_str = ""
         move_symbol = " .. "
         
-        if line['move']:
-            move_symbol = " -> "
+        if has_moving:
             c_sym = "⚊" if c['type'] == 'yang' else "⚋"
-            change_str = f"{c['rel']}{c['branch']}{c['el']} {c_sym}"
+            change_content = f"{c['rel']}{c['branch']}{c['el']} {c_sym}"
+            
+            if line['move']:
+                move_symbol = " -> "
+            else:
+                move_symbol = "    " # 靜爻的占位符
+                
+            change_str = change_content
         
         change_str_padded = wide_pad(change_str, 16)
         
-        # 納音
+        # 納音 [修正] 靜爻也顯示納音變化
         m_ny = m['nayin'][-3:] if m['nayin'] else ""
-        c_ny = c['nayin'][-3:] if (c['nayin'] and has_moving) else ""
         nayin_str = m_ny
-        if line['move'] and c_ny:
+        if has_moving:
+            c_ny = c['nayin'][-3:] if c['nayin'] else ""
             nayin_str += f" -> {c_ny}"
             
         row_str = f"{god_str}{hidden_str}{main_str}{move_symbol}{change_str_padded}| {nayin_str}"

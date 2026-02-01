@@ -326,14 +326,21 @@ def calculate_hexagram(numbers, day_stem, day_branch):
             if (i + 1) == ying_pos:
                 shiying = "應"
         
+        # 顯示邏輯：UI保留精簡(有差異才顯示)，Copy Text需要全顯
         hidden_str = ""
         base_line = base_lines[i]
+        
+        # UI用的 conditional hidden
         if (base_line["rel"], base_line["branch"], base_line["el"]) != (m_rel, m_branch, m_el):
             hidden_str = f"{base_line['rel']}{base_line['branch']}{base_line['el']}"
+
+        # Copy Text用的 full hidden (無條件)
+        full_hidden_str = f"{base_line['rel']}{base_line['branch']}{base_line['el']}"
 
         lines_data.append({
             "god": god,
             "hidden": hidden_str,
+            "full_hidden": full_hidden_str,
             "main": {"stem": m_stem, "branch": m_branch, "el": m_el, "nayin": m_nayin, "rel": m_rel, "shiying": shiying, "type": "yang" if main_code[i] else "yin"},
             "change": {"stem": c_stem, "branch": c_branch, "el": c_el, "nayin": c_nayin, "rel": c_rel, "type": "yang" if change_code[i] else "yin"},
             "move": moves[i]
@@ -641,14 +648,13 @@ font-size:0.9em;">{m['shiying']}</div>
 
     # [修正 3] 星煞第二行：取消縮排，直接重複標籤以確保對齊
     label_text = "【星煞】："
-    # 移除原有的 label_width 與 star_indent 計算
-
+    
     copy_text = "依據上傳檔案的排盤圖示，進行完整解卦，而上傳檔案的文字內容如下：\n\n"
     
     copy_text += f"【問題】：{question_input if question_input else '未輸入'}\n"
     copy_text += f"【時間】：{gz_year}年 {gz_month}月 {gz_day}日 {gz_hour}時\n"
     copy_text += f"【旬空】：{voids}\n"
-    # 直接在第二列也加上 label_text
+    # 確認兩列星煞皆加上標籤，確保對齊
     copy_text += f"{label_text}{stars_row1_text}\n{label_text}{stars_row2_text}\n\n"
     
     copy_text += f"【主卦】：{palace}宮-{m_display_name}"
@@ -669,12 +675,9 @@ font-size:0.9em;">{m['shiying']}</div>
         # 1. 六神 (靠左)
         god_str = wide_pad(line['god'], 6, 'left')
         
-        # 2. [修正 1] 藏伏 (有藏伏維持原狀(11)，無藏伏固定10)
-        hidden_val = line['hidden'] if line['hidden'] else ""
-        if hidden_val:
-            hidden_str = wide_pad(hidden_val, 11, 'left')
-        else:
-            hidden_str = " " * 10
+        # 2. [修正 1] 藏伏：無條件顯示所有藏伏 (使用 full_hidden)
+        hidden_val = line['full_hidden']
+        hidden_str = wide_pad(hidden_val, 11, 'left')
         
         # 3. 主卦: 文字靠左 + 符號 + 世應 (固定寬度)
         m = line['main']

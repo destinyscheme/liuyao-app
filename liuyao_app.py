@@ -669,12 +669,12 @@ font-size:0.9em;">{m['shiying']}</div>
         # 1. 六神 (靠左)
         god_str = wide_pad(line['god'], 6, 'left')
         
-        # 2. [修正 1] 藏伏 (有藏伏維持原狀(11)，無藏伏固定17)
+        # 2. [修正 1] 藏伏 (有藏伏維持原狀(11)，無藏伏固定10)
         hidden_val = line['hidden'] if line['hidden'] else ""
         if hidden_val:
             hidden_str = wide_pad(hidden_val, 11, 'left')
         else:
-            hidden_str = " " * 9.5
+            hidden_str = " " * 10
         
         # 3. 主卦: 文字靠左 + 符號 + 世應 (固定寬度)
         m = line['main']

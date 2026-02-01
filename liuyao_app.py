@@ -6,7 +6,7 @@ from lunar_python import Solar, Lunar
 # ==============================================================================
 # 0. 網頁設定 & CSS (視覺優化：外框保留，內框全除)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-精修版v34", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-精修版v35", layout="wide")
 
 st.markdown("""
 <style>
@@ -37,8 +37,7 @@ label[data-baseweb="label"] {
 
 /* 按鈕設定 (紅底白字) */
 div.stButton > button {
-    background-color: #d32f2f !important;
-    /* 紅色背景 */
+    background-color: #d32f2f !important; /* 紅色背景 */
     color: #ffffff !important;             /* 白色文字 */
     border: 1px solid #d32f2f !important;
     border-radius: 0px !important;
@@ -47,8 +46,7 @@ div.stButton > button {
     margin-bottom: 20px;
 }
 div.stButton > button:hover {
-    background-color: #b71c1c !important;
-    /* 滑鼠懸停時更深紅 */
+    background-color: #b71c1c !important; /* 滑鼠懸停時更深紅 */
     color: #ffffff !important;
 }
 
@@ -59,8 +57,7 @@ div.stButton > button:hover {
     text-align: center; 
     font-size: 18px; 
     table-layout: fixed; 
-    border: 2px solid #000 !important;
-    /* 保留最外層邊框 */
+    border: 2px solid #000 !important; /* 保留最外層邊框 */
     margin-top: 10px;
 }
 
@@ -83,27 +80,21 @@ div.stButton > button:hover {
 
 /* 輔助類別 */
 .td-main { border-right: none !important; }
-.td-arrow { border-left: none !important; border-right: none !important;
-}
+.td-arrow { border-left: none !important; border-right: none !important; }
 .td-change { border-left: none !important; }
 
 /* 爻條樣式 */
-.bar-yang { display: inline-block; width: 100px; height: 14px; background-color: #000;
-}
+.bar-yang { display: inline-block; width: 100px; height: 14px; background-color: #000; }
 .bar-yin { display: inline-flex; width: 100px; height: 14px; justify-content: space-between; }
-.bar-yin::before, .bar-yin::after { content: ""; width: 42px; height: 100%;
-background-color: #000; }
+.bar-yin::before, .bar-yin::after { content: ""; width: 42px; height: 100%; background-color: #000; }
 
 .bar-yang-c { background-color: #000; }
 .bar-yin-c::before, .bar-yin-c::after { background-color: #000; }
 
 /* 資訊區塊 */
-.info-box { border: 1px solid #000;
-padding: 15px; margin-bottom: 10px; background-color: #fff; line-height: 1.6; }
-.attr-tag { font-size: 0.7em; border: 1px solid #000; padding: 1px 4px;
-margin-left: 5px; font-weight: normal; }
-.hex-title-text { font-size: 1.1em; display: block; margin-bottom: 5px;
-}
+.info-box { border: 1px solid #000; padding: 15px; margin-bottom: 10px; background-color: #fff; line-height: 1.6; }
+.attr-tag { font-size: 0.7em; border: 1px solid #000; padding: 1px 4px; margin-left: 5px; font-weight: normal; }
+.hex-title-text { font-size: 1.1em; display: block; margin-bottom: 5px; }
 
 </style>
 """, unsafe_allow_html=True)
@@ -171,11 +162,9 @@ for full_name in HEX_INFO.keys():
     SHORT_NAME_MAP[full_name] = full_name
     FULL_TO_SHORT_MAP[full_name] = short_name
 
-STAR_A_TABLE = {"子": ("未", "亥"), "丑": ("未", "子"), "寅": ("戌", "丑"), "卯": ("戌", "寅"), "辰": ("戌", "卯"), 
-"巳": ("丑", "辰"), "午": ("丑", "巳"), "未": ("丑", "午"), "申": ("辰", "未"), "酉": ("辰", "申"), "戌": ("辰", "酉"), "亥": ("未", "戌")}
+STAR_A_TABLE = {"子": ("未", "亥"), "丑": ("未", "子"), "寅": ("戌", "丑"), "卯": ("戌", "寅"), "辰": ("戌", "卯"), "巳": ("丑", "辰"), "午": ("丑", "巳"), "未": ("丑", "午"), "申": ("辰", "未"), "酉": ("辰", "申"), "戌": ("辰", "酉"), "亥": ("未", "戌")}
 STAR_B_TABLE = {"甲": ("寅", "卯", "巳", "丑、未"), "乙": ("卯", "寅", "午", "申、子"), "丙": ("巳", "午", "申", "酉、亥"), "丁": ("午", "巳", "酉", "酉、亥"), "戊": ("巳", "午", "申", "丑、未"), "己": ("午", "巳", "酉", "申、子"), "庚": ("申", "酉", "亥", "寅、午"), "辛": ("酉", "申", "子", "寅、午"), "壬": ("亥", "子", "寅", "卯、巳"), "癸": ("子", "亥", "卯", "卯、巳")}
-STAR_C_TABLE = {"子": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "丑": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "寅": ("卯", "辰", "午", "申", "戌", "亥", "子"), "卯": ("子", "丑", 
-"卯", "巳", "未", "申", "酉"), "辰": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "巳": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "午": ("卯", "辰", "午", "申", "戌", "亥", "子"), "未": ("子", "丑", "卯", "巳", "未", "申", "酉"), "申": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "酉": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "戌": ("卯", "辰", "午", "申", "戌", "亥", "子"), "亥": ("子", "丑", "卯", "巳", "未", "申", "酉")}
+STAR_C_TABLE = {"子": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "丑": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "寅": ("卯", "辰", "午", "申", "戌", "亥", "子"), "卯": ("子", "丑", "卯", "巳", "未", "申", "酉"), "辰": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "巳": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "午": ("卯", "辰", "午", "申", "戌", "亥", "子"), "未": ("子", "丑", "卯", "巳", "未", "申", "酉"), "申": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "酉": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "戌": ("卯", "辰", "午", "申", "戌", "亥", "子"), "亥": ("子", "丑", "卯", "巳", "未", "申", "酉")}
 
 SIX_CLASH_HEX = ["乾為天", "坎為水", "艮為山", "震為雷", "巽為風", "離為火", "坤為地", "兌為澤", "天雷無妄", "雷天大壯"]
 SIX_HARMONY_HEX = ["天地否", "地天泰", "地雷復", "雷地豫", "水澤節", "澤水困", "山火賁", "火山旅"]
@@ -521,8 +510,7 @@ if btn or True:
     stars_row1_text = "   ".join(star_list_row1)
     stars_row2_text = "   ".join(star_list_row2)
 
-    question_html = f"""<div style="font-size:1.2em;
-    font-weight:bold; margin-bottom:10px; border-bottom:1px solid #000; padding-bottom:5px;">問題：{question_input if question_input else "（未輸入）"}</div>"""
+    question_html = f"""<div style="font-size:1.2em; font-weight:bold; margin-bottom:10px; border-bottom:1px solid #000; padding-bottom:5px;">問題：{question_input if question_input else "（未輸入）"}</div>"""
 
     date_parts = []
     if gz_year: date_parts.append(f"<span>{gz_year}</span> 年")
@@ -533,13 +521,11 @@ if btn or True:
     date_html_str = " ".join(date_parts)
 
     info_html = f"""<div class="info-box">
-<div style="text-align:center;
-font-size:1.1em; font-weight:bold; margin-bottom:10px;">
+<div style="text-align:center; font-size:1.1em; font-weight:bold; margin-bottom:10px;">
 {date_html_str} &nbsp;&nbsp; (旬空: <span>{voids}</span>)
 </div>
 <div style="display:flex; justify-content:center;">
-    <div style="text-align:left; font-size:0.95em;
-    line-height:1.7;">
+    <div style="text-align:left; font-size:0.95em; line-height:1.7;">
         {stars_row1_html}<br>
         {stars_row2_html}
     </div>
@@ -596,19 +582,16 @@ font-size:1.1em; font-weight:bold; margin-bottom:10px;">
 
         if has_moving:
              c_bar_cls = "bar-yang bar-yang-c" if c["type"] == "yang" else "bar-yin bar-yin-c"
-             c_cell_content = f"""<div style="display:flex;
-            align-items:center; justify-content:center; gap:5px;">
+             c_cell_content = f"""<div style="display:flex; align-items:center; justify-content:center; gap:5px;">
 <div class="{c_bar_cls}"></div>
 <div style="text-align:left; min-width:55px; color:#000;">{c['rel']}{c['branch']}{c['el']}</div>
 </div>"""
              c_nayin_short = c["nayin"][-3:] if c["nayin"] else ""
 
-        main_cell = f"""<div style="display:flex;
-        align-items:center; justify-content:center; gap:5px;">
+        main_cell = f"""<div style="display:flex; align-items:center; justify-content:center; gap:5px;">
 <div style="text-align:right; min-width:55px;">{m['rel']}{m['branch']}{m['el']}</div>
 <div class="{m_bar_cls}"></div>
-<div style="text-align:left; width:25px; color:#000; font-weight:bold;
-font-size:0.9em;">{m['shiying']}</div>
+<div style="text-align:left; width:25px; color:#000; font-weight:bold; font-size:0.9em;">{m['shiying']}</div>
 </div>"""
 
         row = f"""<tr>
@@ -628,7 +611,7 @@ font-size:0.9em;">{m['shiying']}</div>
     st.markdown(final_html, unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
-    # 4. 複製用文字資料 (AI 判讀輔助)
+    # 4. 複製用文字資料 (AI 判讀輔助) - 修正後版本
     # --------------------------------------------------------------------------
     st.markdown("### 📋 複製用文字資料 (AI 判讀輔助)")
     
@@ -646,7 +629,7 @@ font-size:0.9em;">{m['shiying']}</div>
         else:
             return padding + text
 
-    # [修正 3] 星煞第二行：取消縮排，直接重複標籤以確保對齊
+    # [修正] 星煞第二行：取消縮排，直接重複標籤以確保對齊
     label_text = "【星煞】："
     
     copy_text = "依據上傳檔案的排盤圖示，進行完整解卦，而上傳檔案的文字內容如下：\n\n"
@@ -666,7 +649,7 @@ font-size:0.9em;">{m['shiying']}</div>
         if c_attrs: copy_text += f" ({','.join(c_attrs)})"
         copy_text += "\n"
     
-    copy_text += "\n六神  藏伏        【主卦】          【變卦】        納音(主->變)\n"
+    copy_text += "\n六神  藏伏        【主卦】           【變卦】        納音(主->變)\n"
     copy_text += "-" * 65 + "\n"
     
     for i in range(5, -1, -1):
@@ -675,7 +658,7 @@ font-size:0.9em;">{m['shiying']}</div>
         # 1. 六神 (靠左)
         god_str = wide_pad(line['god'], 6, 'left')
         
-        # 2. [修正 1] 藏伏：無條件顯示所有藏伏 (使用 full_hidden)
+        # 2. 藏伏：無條件顯示所有藏伏 (使用 full_hidden)
         hidden_val = line['full_hidden']
         hidden_str = wide_pad(hidden_val, 11, 'left')
         
@@ -684,15 +667,21 @@ font-size:0.9em;">{m['shiying']}</div>
         m_text = f"{m['rel']}{m['branch']}{m['el']}"
         m_sym = "⚊" if m['type'] == 'yang' else "⚋"
         
-        # [修正 2] 世應若無則補4格空白 (等同 "(世)" 的寬度)
-        m_shi = f"({m['shiying']})" if m['shiying'] else "    "
+        # [修正 1] 世應若無則補4格空白 (等同 "(世)" 的寬度，確保嚴格對齊)
+        if m['shiying']:
+            m_shi = f"({m['shiying']})"
+        else:
+            m_shi = "    " # 4個半形空格，對應 (世) 的寬度
         
         m_text_padded = wide_pad(m_text, 10, 'left')
         main_full = f"{m_text_padded} {m_sym} {m_shi}"
         main_str = wide_pad(main_full, 18, 'left')
         
-        # 4. 變卦箭頭 (靜爻補4格)
-        move_symbol = " -> " if line['move'] else "    " 
+        # [修正 2] 變卦箭頭 (若無動爻則補4格空白，等同 " -> " 的寬度，確保嚴格對齊)
+        if line['move']:
+            move_symbol = " -> "
+        else:
+            move_symbol = "    " # 4個半形空格，對應 " -> " 的寬度
         
         # 5. 變卦: 符號 + 文字靠右
         if has_moving:

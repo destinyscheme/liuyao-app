@@ -674,7 +674,7 @@ font-size:0.9em;">{m['shiying']}</div>
         if hidden_val:
             hidden_str = wide_pad(hidden_val, 11, 'left')
         else:
-            hidden_str = " " * 10
+            hidden_str = " " * 9
         
         # 3. 主卦: 文字靠左 + 符號 + 世應 (固定寬度)
         m = line['main']

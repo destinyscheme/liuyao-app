@@ -4,9 +4,9 @@ import random
 from lunar_python import Solar, Lunar
 
 # ==============================================================================
-# 0. 網頁設定 & CSS (維持視覺架構：外框保留，內框全除)
+# 0. 網頁設定 & CSS (視覺優化：外框保留，內框全除)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-精修版v33", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-精修版v34", layout="wide")
 
 st.markdown("""
 <style>
@@ -605,7 +605,7 @@ if btn or True:
     st.markdown(final_html, unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
-    # 4. 複製用文字資料 (垂直對齊+佈局優化版)
+    # 4. 複製用文字資料 (AI 判讀輔助)
     # --------------------------------------------------------------------------
     st.markdown("### 📋 複製用文字資料 (AI 判讀輔助)")
     
@@ -623,15 +623,17 @@ if btn or True:
         else:
             return padding + text
 
-    # 星煞第二行縮排計算 (【星煞】： 寬度為 4*2 + 1*2 = 10)
-    star_indent = " " * 10 
+    # [修正 3] 星煞第二行縮排計算 (【星煞】： 寬度為 4*2 + 1*2 = 10)
+    label_text = "【星煞】："
+    label_width = sum(2 if ord(c) > 127 else 1 for c in label_text) 
+    star_indent = " " * label_width
 
     copy_text = "依據上傳檔案的排盤圖示，進行完整解卦，而上傳檔案的文字內容如下：\n\n"
     
     copy_text += f"【問題】：{question_input if question_input else '未輸入'}\n"
     copy_text += f"【時間】：{gz_year}年 {gz_month}月 {gz_day}日 {gz_hour}時\n"
     copy_text += f"【旬空】：{voids}\n"
-    copy_text += f"【星煞】：{stars_row1_text}\n{star_indent}{stars_row2_text}\n\n"
+    copy_text += f"{label_text}{stars_row1_text}\n{star_indent}{stars_row2_text}\n\n"
     
     copy_text += f"【主卦】：{palace}宮-{m_display_name}"
     if m_attrs: copy_text += f" ({','.join(m_attrs)})"
@@ -651,23 +653,23 @@ if btn or True:
         # 1. 六神 (靠左)
         god_str = wide_pad(line['god'], 6, 'left')
         
-        # 2. 藏伏 (固定11寬，無則補空)
+        # 2. [修正 1] 藏伏 (固定11寬，無則補空，確保對齊)
         hidden_val = line['hidden'] if line['hidden'] else ""
         hidden_str = wide_pad(hidden_val, 11, 'left')
         
-        # 3. 主卦: 文字靠左 + 符號 + 世應 (固定寬度，無則補空)
+        # 3. 主卦: 文字靠左 + 符號 + 世應 (固定寬度)
         m = line['main']
         m_text = f"{m['rel']}{m['branch']}{m['el']}"
         m_sym = "⚊" if m['type'] == 'yang' else "⚋"
         
-        # 世應若無則補4格空白
+        # [修正 2] 世應若無則補4格空白 (等同 "(世)" 的寬度)
         m_shi = f"({m['shiying']})" if m['shiying'] else "    "
         
         m_text_padded = wide_pad(m_text, 10, 'left')
         main_full = f"{m_text_padded} {m_sym} {m_shi}"
         main_str = wide_pad(main_full, 18, 'left')
         
-        # 4. 變卦箭頭
+        # 4. 變卦箭頭 (靜爻補4格)
         move_symbol = " -> " if line['move'] else "    " 
         
         # 5. 變卦: 符號 + 文字靠右

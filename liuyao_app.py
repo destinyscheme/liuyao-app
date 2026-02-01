@@ -655,7 +655,7 @@ if btn or True:
         
         # 2. [修正 1] 藏伏 (固定11寬，無則補空，確保對齊)
         hidden_val = line['hidden'] if line['hidden'] else ""
-        hidden_str = wide_pad(hidden_val, 11, 'left')
+        hidden_str = wide_pad(hidden_val, 10, 'left')
         
         # 3. 主卦: 文字靠左 + 符號 + 世應 (固定寬度)
         m = line['main']

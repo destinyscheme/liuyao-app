@@ -6,7 +6,7 @@ from lunar_python import Solar, Lunar
 # ==============================================================================
 # 0. 網頁設定 & CSS (視覺優化：外框保留，內框全除)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-精修版v35", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-精修版v36", layout="wide")
 
 st.markdown("""
 <style>
@@ -52,7 +52,7 @@ div.stButton > button:hover {
 
 /* 表格樣式：保留外框，刪除所有內框 */
 .hex-table { 
-    width: 100%;
+    width: 100%; 
     border-collapse: collapse; 
     text-align: center; 
     font-size: 18px; 
@@ -65,7 +65,7 @@ div.stButton > button:hover {
     padding: 8px 2px;
     border: none !important; /* 移除所有儲存格的邊框 */
     vertical-align: middle; 
-    color: #000;
+    color: #000; 
 }
 
 /* 標題列樣式 */
@@ -315,7 +315,6 @@ def calculate_hexagram(numbers, day_stem, day_branch):
             if (i + 1) == ying_pos:
                 shiying = "應"
         
-        # 顯示邏輯：UI保留精簡(有差異才顯示)，Copy Text需要全顯
         hidden_str = ""
         base_line = base_lines[i]
         
@@ -323,7 +322,7 @@ def calculate_hexagram(numbers, day_stem, day_branch):
         if (base_line["rel"], base_line["branch"], base_line["el"]) != (m_rel, m_branch, m_el):
             hidden_str = f"{base_line['rel']}{base_line['branch']}{base_line['el']}"
 
-        # Copy Text用的 full hidden (無條件)
+        # [cite_start]Copy Text用的 full hidden (無條件) [cite: 56]
         full_hidden_str = f"{base_line['rel']}{base_line['branch']}{base_line['el']}"
 
         lines_data.append({
@@ -497,6 +496,7 @@ if btn or True:
         return f"{EARTHLY_BRANCHES[(diff - 2) % 12]}{EARTHLY_BRANCHES[(diff - 1) % 12]}"
     
     voids = get_voids(day_stem, day_branch) if day_stem and day_branch else "??"
+    
     s_a = STAR_A_TABLE.get(month_branch, ("-", "-"))
     s_b = STAR_B_TABLE.get(day_stem, ("-", "-", "-", "-"))
     s_c = STAR_C_TABLE.get(day_branch, ("-", "-", "-", "-", "-", "-", "-"))
@@ -507,6 +507,7 @@ if btn or True:
     stars_row1_html = "&nbsp;&nbsp;&nbsp;".join(star_list_row1)
     stars_row2_html = "&nbsp;&nbsp;&nbsp;".join(star_list_row2)
     
+    [cite_start]# [cite: 73]
     stars_row1_text = "   ".join(star_list_row1)
     stars_row2_text = "   ".join(star_list_row2)
 
@@ -611,7 +612,7 @@ if btn or True:
     st.markdown(final_html, unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
-    # 4. 複製用文字資料 (AI 判讀輔助) - 修正後版本
+    # 4. 複製用文字資料 (AI 判讀輔助)
     # --------------------------------------------------------------------------
     st.markdown("### 📋 複製用文字資料 (AI 判讀輔助)")
     
@@ -629,16 +630,18 @@ if btn or True:
         else:
             return padding + text
 
-    # [修正] 星煞第二行：取消縮排，直接重複標籤以確保對齊
+    # [修正] 星煞第二行使用純空白縮排，寬度 = "【星煞】：" (10 chars)
     label_text = "【星煞】："
+    label_width = 10 # 4*2 + 1*2 = 10
+    star_indent = " " * label_width
     
     copy_text = "依據上傳檔案的排盤圖示，進行完整解卦，而上傳檔案的文字內容如下：\n\n"
     
     copy_text += f"【問題】：{question_input if question_input else '未輸入'}\n"
     copy_text += f"【時間】：{gz_year}年 {gz_month}月 {gz_day}日 {gz_hour}時\n"
     copy_text += f"【旬空】：{voids}\n"
-    # 確認兩列星煞皆加上標籤，確保對齊
-    copy_text += f"{label_text}{stars_row1_text}\n{label_text}{stars_row2_text}\n\n"
+    # [修正] 第一列有標題，第二列使用空白縮排對齊
+    copy_text += f"{label_text}{stars_row1_text}\n{star_indent}{stars_row2_text}\n\n"
     
     copy_text += f"【主卦】：{palace}宮-{m_display_name}"
     if m_attrs: copy_text += f" ({','.join(m_attrs)})"
@@ -649,7 +652,7 @@ if btn or True:
         if c_attrs: copy_text += f" ({','.join(c_attrs)})"
         copy_text += "\n"
     
-    copy_text += "\n六神  藏伏        【主卦】           【變卦】        納音(主->變)\n"
+    copy_text += "\n六神  藏伏        【主卦】          【變卦】        納音(主->變)\n"
     copy_text += "-" * 65 + "\n"
     
     for i in range(5, -1, -1):
@@ -658,7 +661,7 @@ if btn or True:
         # 1. 六神 (靠左)
         god_str = wide_pad(line['god'], 6, 'left')
         
-        # 2. 藏伏：無條件顯示所有藏伏 (使用 full_hidden)
+        # [cite_start]2. [修正] 藏伏：無條件顯示所有藏伏 (使用 full_hidden) [cite: 56, 88]
         hidden_val = line['full_hidden']
         hidden_str = wide_pad(hidden_val, 11, 'left')
         
@@ -667,21 +670,15 @@ if btn or True:
         m_text = f"{m['rel']}{m['branch']}{m['el']}"
         m_sym = "⚊" if m['type'] == 'yang' else "⚋"
         
-        # [修正 1] 世應若無則補4格空白 (等同 "(世)" 的寬度，確保嚴格對齊)
-        if m['shiying']:
-            m_shi = f"({m['shiying']})"
-        else:
-            m_shi = "    " # 4個半形空格，對應 (世) 的寬度
+        # 世應若無則補4格空白 (等同 "(世)" 的寬度)
+        m_shi = f"({m['shiying']})" if m['shiying'] else "    "
         
         m_text_padded = wide_pad(m_text, 10, 'left')
         main_full = f"{m_text_padded} {m_sym} {m_shi}"
         main_str = wide_pad(main_full, 18, 'left')
         
-        # [修正 2] 變卦箭頭 (若無動爻則補4格空白，等同 " -> " 的寬度，確保嚴格對齊)
-        if line['move']:
-            move_symbol = " -> "
-        else:
-            move_symbol = "    " # 4個半形空格，對應 " -> " 的寬度
+        # 4. 變卦箭頭 (靜爻補4格)
+        move_symbol = " -> " if line['move'] else "    " 
         
         # 5. 變卦: 符號 + 文字靠右
         if has_moving:

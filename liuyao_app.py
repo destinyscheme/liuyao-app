@@ -631,9 +631,9 @@ if btn or True:
         else:
             return padding + text
 
-    # [修正 1] 星煞第二行：取消文字標題，改以等寬空格 (10個半形空格) 確保對齊
+    # [修正 1] 星煞第二行：取消文字標題，改以等寬空格 (7個半形空格) 確保對齊
     label_text = "【星煞】："
-    star_indent = " " * 8
+    star_indent = " " * 7
     
     copy_text = "依據上傳檔案的排盤圖示，進行完整解卦，而上傳檔案的文字內容如下：\n\n"
     

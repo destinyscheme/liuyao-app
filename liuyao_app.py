@@ -7,7 +7,7 @@ from lunar_python import Solar, Lunar
 # ==============================================================================
 # 0. 網頁設定 & CSS (視覺優化：外框保留，內框全除)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-精修版v37", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-精修版v38", layout="wide")
 
 st.markdown("""
 <style>
@@ -509,6 +509,7 @@ if btn or True:
     stars_row1_html = "&nbsp;&nbsp;&nbsp;".join(star_list_row1)
     stars_row2_html = "&nbsp;&nbsp;&nbsp;".join(star_list_row2)
     
+    # 
     stars_row1_text = "   ".join(star_list_row1)
     stars_row2_text = "   ".join(star_list_row2)
 
@@ -631,16 +632,15 @@ if btn or True:
         else:
             return padding + text
 
-    # [修正 1] 星煞第二行：取消文字標題，改以等寬空格 (8個半形空格) 確保對齊
+    # [修正 1] 星煞第二行：明確加上標題，確保對齊
     label_text = "【星煞】："
-    star_indent = " " * 8
     
     copy_text = "依據上傳檔案的排盤圖示，進行完整解卦，而上傳檔案的文字內容如下：\n\n"
     
     copy_text += f"【問題】：{question_input if question_input else '未輸入'}\n"
     copy_text += f"【時間】：{gz_year}年 {gz_month}月 {gz_day}日 {gz_hour}時\n"
     copy_text += f"【旬空】：{voids}\n"
-    copy_text += f"{label_text}{stars_row1_text}\n{star_indent}{stars_row2_text}\n\n"
+    copy_text += f"{label_text}{stars_row1_text}\n{label_text}{stars_row2_text}\n\n"
     
     copy_text += f"【主卦】：{palace}宮-{m_display_name}"
     if m_attrs: copy_text += f" ({','.join(m_attrs)})"
@@ -669,7 +669,7 @@ if btn or True:
         m_text = f"{m['rel']}{m['branch']}{m['el']}"
         m_sym = "⚊" if m['type'] == 'yang' else "⚋"
         
-        # [修正 2] 移除世應括號，若無則補2格空白
+        # [修正 2] 移除世應括號，若無則補2格空白 (等同 1個漢字 的寬度)
         m_shi = f"{m['shiying']}" if m['shiying'] else "  "
         
         m_text_padded = wide_pad(m_text, 10, 'left')

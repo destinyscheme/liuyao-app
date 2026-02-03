@@ -1,13 +1,12 @@
 import streamlit as st
 import datetime
 import random
-import pandas as pd
 from lunar_python import Solar, Lunar
 
 # ==============================================================================
-# 0. 網頁設定 & CSS (視覺優化：外框保留，內框全除)
+# 0. 網頁設定 & CSS
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-精修版v38", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-AI極致版v39", layout="wide")
 
 st.markdown("""
 <style>
@@ -618,8 +617,6 @@ if btn or True:
     # --------------------------------------------------------------------------
     st.markdown("### 📋 複製用文字資料 (AI 判讀輔助)")
     
-    # 輔助函數：計算考慮全形字的字串填充
-    # align: 'left' (靠左, 右側補空), 'right' (靠右, 左側補空)
     def wide_pad(text, width, align='left'):
         count = 0
         for char in text:
@@ -632,7 +629,7 @@ if btn or True:
         else:
             return padding + text
 
-    # [修正 1] 星煞第二行：明確加上標題，確保對齊
+    # [修正 1] 確保星煞表格化，使用完全一致的標題字串
     label_text = "【星煞】："
     
     copy_text = "依據上傳檔案的排盤圖示，進行完整解卦，而上傳檔案的文字內容如下：\n\n"
@@ -640,6 +637,7 @@ if btn or True:
     copy_text += f"【問題】：{question_input if question_input else '未輸入'}\n"
     copy_text += f"【時間】：{gz_year}年 {gz_month}月 {gz_day}日 {gz_hour}時\n"
     copy_text += f"【旬空】：{voids}\n"
+    # 每一列都明確標示標題，確保絕對對齊
     copy_text += f"{label_text}{stars_row1_text}\n{label_text}{stars_row2_text}\n\n"
     
     copy_text += f"【主卦】：{palace}宮-{m_display_name}"
@@ -654,52 +652,44 @@ if btn or True:
     copy_text += "\n六神  藏伏        【主卦】          【變卦】        納音(主->變)\n"
     copy_text += "-" * 65 + "\n"
     
+    labels_map = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"]
+    
     for i in range(5, -1, -1):
         line = lines_data[i]
         
-        # 1. 六神 (靠左)
-        god_str = wide_pad(line['god'], 6, 'left')
+        # [New] AI 極致優化：條列式描述
+        # 格式：[爻位] 六神：X | 藏伏：Y | 主卦：Z | 變卦：W | 納音：V
         
-        # 2. 藏伏：無條件顯示所有藏伏 (使用 full_hidden)
+        # 1. 爻位與六神
+        row_str = f"[{labels_map[i]}] 六神：{line['god']} | "
+        
+        # 2. 藏伏 (顯示全部，若空則顯示無)
         hidden_val = line['full_hidden']
-        hidden_str = wide_pad(hidden_val, 11, 'left')
+        if not hidden_val: hidden_val = "無"
+        row_str += f"藏伏：{hidden_val} | "
         
-        # 3. 主卦: 文字靠左 + 符號 + 世應 (固定寬度)
+        # 3. 主卦詳細
         m = line['main']
-        m_text = f"{m['rel']}{m['branch']}{m['el']}"
-        m_sym = "⚊" if m['type'] == 'yang' else "⚋"
+        m_yin_yang = "陽" if m['type'] == 'yang' else "陰"
+        m_shi_ying = f", {m['shiying']}" if m['shiying'] else ""
+        row_str += f"主卦：{m['rel']}{m['branch']}{m['el']} ({m_yin_yang}{m_shi_ying}) | "
         
-        # [修正 2] 移除世應括號，若無則補2格空白 (等同 1個漢字 的寬度)
-        m_shi = f"{m['shiying']}" if m['shiying'] else "  "
-        
-        m_text_padded = wide_pad(m_text, 10, 'left')
-        main_full = f"{m_text_padded} {m_sym} {m_shi}"
-        main_str = wide_pad(main_full, 18, 'left')
-        
-        # 4. 變卦箭頭 (靜爻補4格)
-        move_symbol = " -> " if line['move'] else "    " 
-        
-        # 5. 變卦: 符號 + 文字靠右
-        if has_moving:
+        # 4. 變動與變卦
+        if line['move']:
             c = line['change']
-            c_text = f"{c['rel']}{c['branch']}{c['el']}"
-            c_sym = "⚊" if c['type'] == 'yang' else "⚋"
-            c_text_padded = wide_pad(c_text, 10, 'right')
-            change_content = f"{c_sym} {c_text_padded}"
+            c_yin_yang = "陽" if c['type'] == 'yang' else "陰"
+            row_str += f"變動：動爻(化作{c['rel']}{c['branch']}{c['el']} {c_yin_yang}) | "
         else:
-            change_content = ""
+            row_str += "變動：靜爻 | "
             
-        change_str = wide_pad(change_content, 16, 'left')
-        
-        # 6. 納音
-        m_ny = m['nayin'][-3:] if m['nayin'] else ""
-        nayin_str = m_ny
-        if has_moving:
-            c_ny = line['change']['nayin'][-3:] if line['change']['nayin'] else ""
-            if c_ny:
-                nayin_str += f" -> {c_ny}"
+        # 5. 納音
+        m_ny = m['nayin'][-3:] if m['nayin'] else "無"
+        if line['move']:
+            c_ny = line['change']['nayin'][-3:] if line['change']['nayin'] else "無"
+            row_str += f"納音：{m_ny} -> {c_ny}"
+        else:
+            row_str += f"納音：{m_ny}"
             
-        row_str = f"{god_str}{hidden_str}{main_str}{move_symbol}{change_str}|{nayin_str}"
         copy_text += row_str + "\n"
         
     st.code(copy_text, language='text')

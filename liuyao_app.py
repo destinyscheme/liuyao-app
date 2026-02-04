@@ -7,7 +7,7 @@ from lunar_python import Solar, Lunar
 # ==============================================================================
 # 0. 網頁設定 & CSS (視覺優化：外框保留，內框全除)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-AI極致版v42", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-AI極致版v43", layout="wide")
 
 st.markdown("""
 <style>
@@ -597,6 +597,13 @@ if btn or True:
 <div style="text-align:left; width:25px; color:#000; font-weight:bold; font-size:0.9em;">{m['shiying']}</div>
 </div>"""
 
+        # UI表格內納音顯示
+        nayin_display = m_nayin_short
+        if has_moving and c_nayin_short:
+            # 只有當有變動時，UI才顯示主->變 (保持UI精簡)
+            # 但使用者要求複製的文字資料要顯示全部
+            pass 
+
         row = f"""<tr>
 <td class="small-text">{line['god']}</td>
 <td class="small-text" style="font-size:0.85em;">{line['hidden']}</td>
@@ -614,7 +621,7 @@ if btn or True:
     st.markdown(final_html, unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
-    # 4. 複製用文字資料 (AI 判讀輔助)
+    # 4. 複製用文字資料 (AI 判讀輔助 - Key-Value 格式)
     # --------------------------------------------------------------------------
     st.markdown("### 📋 複製用文字資料 (AI 判讀輔助)")
     
@@ -635,54 +642,82 @@ if btn or True:
         if c_attrs: copy_text += f" ({','.join(c_attrs)})"
         copy_text += "\n"
     
-    # [修正 2] 標題更新：爻位 | ... | 動變 | ...
-    copy_text += "\n爻位  六神  藏伏        【主卦】          動變          【變卦】        納音(主->變)\n"
-    copy_text += "-" * 100 + "\n"
-    
-    labels_map = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"]
-    
-    for i in range(5, -1, -1):
-        line = lines_data[i]
+    # [修正 2] 邏輯分流：檢查是否整支卦無變爻 (has_moving)
+    if has_moving:
+        # [有動變] 顯示完整欄位
+        copy_text += "\n爻位  六神  藏伏        【主卦】          動變          【變卦】        納音(主->變)\n"
+        copy_text += "-" * 100 + "\n"
         
-        # 1. 爻位與六神
-        row_str = f"[{labels_map[i]}] 六神：{line['god']} | "
+        labels_map = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"]
         
-        # 2. 藏伏 (若UI顯示隱藏則顯示無)
-        hidden_val = line['hidden'] 
-        if not hidden_val: hidden_val = "無"
-        row_str += f"藏伏：{hidden_val} | "
-        
-        # 3. 主卦
-        m = line['main']
-        m_yy = "陽爻" if m['type'] == 'yang' else "陰爻"
-        
-        m_sy = ""
-        if m['shiying'] == "世": m_sy = ", 世爻"
-        elif m['shiying'] == "應": m_sy = ", 應爻"
-        
-        row_str += f"主卦：{m['rel']}{m['branch']}{m['el']} ({m_yy}{m_sy}) | "
-        
-        # 4. [修正 2] 動變描述更新
-        # 「變動：靜爻」改為「無動變：靜爻」
-        # 「變動：動爻」改為「有動變：動爻->」
-        if line['move']:
-            move_str = "有動變：動爻->"
-        else:
-            move_str = "無動變：靜爻"
+        for i in range(5, -1, -1):
+            line = lines_data[i]
             
-        row_str += f"{move_str} | "
+            # 1. 爻位與六神
+            row_str = f"[{labels_map[i]}] 六神：{line['god']} | "
+            
+            # 2. 藏伏
+            hidden_val = line['hidden'] 
+            if not hidden_val: hidden_val = "無"
+            row_str += f"藏伏：{hidden_val} | "
+            
+            # 3. 主卦
+            m = line['main']
+            m_yy = "陽爻" if m['type'] == 'yang' else "陰爻"
+            m_sy = ""
+            if m['shiying'] == "世": m_sy = ", 世爻"
+            elif m['shiying'] == "應": m_sy = ", 應爻"
+            row_str += f"主卦：{m['rel']}{m['branch']}{m['el']} ({m_yy}{m_sy}) | "
+            
+            # 4. 動變 (有動變：動爻-> / 無動變：靜爻)
+            if line['move']:
+                move_str = "有動變：動爻->"
+            else:
+                move_str = "無動變：靜爻"
+            row_str += f"{move_str} | "
+            
+            # 5. 變卦
+            c = line['change']
+            c_yy = "陽爻" if c['type'] == 'yang' else "陰爻"
+            row_str += f"變卦：{c['rel']}{c['branch']}{c['el']} ({c_yy}) | "
+            
+            # 6. 納音
+            m_ny = m['nayin'][-3:] if m['nayin'] else "無"
+            c_ny = line['change']['nayin'][-3:] if line['change']['nayin'] else "無"
+            row_str += f"納音：{m_ny} -> {c_ny}"
+            
+            copy_text += row_str + "\n"
+            
+    else:
+        # [無動變] 簡化欄位
+        copy_text += "\n爻位  六神  藏伏        【主卦】        納音\n"
+        copy_text += "-" * 70 + "\n"
         
-        # 5. 變卦 (強制顯示)
-        c = line['change']
-        c_yy = "陽爻" if c['type'] == 'yang' else "陰爻"
-        row_str += f"變卦：{c['rel']}{c['branch']}{c['el']} ({c_yy}) | "
+        labels_map = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"]
         
-        # 6. 納音 (強制顯示 主->變)
-        m_ny = m['nayin'][-3:] if m['nayin'] else "無"
-        c_ny = line['change']['nayin'][-3:] if line['change']['nayin'] else "無"
-        
-        row_str += f"納音：{m_ny} -> {c_ny}"
-        
-        copy_text += row_str + "\n"
+        for i in range(5, -1, -1):
+            line = lines_data[i]
+            
+            # 1. 爻位與六神
+            row_str = f"[{labels_map[i]}] 六神：{line['god']} | "
+            
+            # 2. 藏伏
+            hidden_val = line['hidden'] 
+            if not hidden_val: hidden_val = "無"
+            row_str += f"藏伏：{hidden_val} | "
+            
+            # 3. 主卦
+            m = line['main']
+            m_yy = "陽爻" if m['type'] == 'yang' else "陰爻"
+            m_sy = ""
+            if m['shiying'] == "世": m_sy = ", 世爻"
+            elif m['shiying'] == "應": m_sy = ", 應爻"
+            row_str += f"主卦：{m['rel']}{m['branch']}{m['el']} ({m_yy}{m_sy}) | "
+            
+            # 4. 納音 (僅顯示主卦納音)
+            m_ny = m['nayin'][-3:] if m['nayin'] else "無"
+            row_str += f"納音：{m_ny}"
+            
+            copy_text += row_str + "\n"
         
     st.code(copy_text, language='text')

@@ -7,7 +7,7 @@ from lunar_python import Solar, Lunar
 # ==============================================================================
 # 0. 網頁設定 & CSS (視覺優化：外框保留，內框全除)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-AI極致版v43", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-AI極致版v44", layout="wide")
 
 st.markdown("""
 <style>
@@ -553,7 +553,7 @@ if btn or True:
     else:
         c_header_content = f"""<span class="hex-title-text">&nbsp;</span><span>【變卦】</span>"""
 
-    # [修正 1] 上方表格：還原 v38 格式 (無爻位、無變動)
+    # UI 表格
     table_html = f"""<table class="hex-table">
 <tr class="header-row">
 <td width="6%">六神</td>
@@ -597,13 +597,6 @@ if btn or True:
 <div style="text-align:left; width:25px; color:#000; font-weight:bold; font-size:0.9em;">{m['shiying']}</div>
 </div>"""
 
-        # UI表格內納音顯示
-        nayin_display = m_nayin_short
-        if has_moving and c_nayin_short:
-            # 只有當有變動時，UI才顯示主->變 (保持UI精簡)
-            # 但使用者要求複製的文字資料要顯示全部
-            pass 
-
         row = f"""<tr>
 <td class="small-text">{line['god']}</td>
 <td class="small-text" style="font-size:0.85em;">{line['hidden']}</td>
@@ -621,7 +614,7 @@ if btn or True:
     st.markdown(final_html, unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
-    # 4. 複製用文字資料 (AI 判讀輔助 - Key-Value 格式)
+    # 4. 複製用文字資料 (AI 判讀輔助 - 去除標題與分隔線版)
     # --------------------------------------------------------------------------
     st.markdown("### 📋 複製用文字資料 (AI 判讀輔助)")
     
@@ -642,14 +635,14 @@ if btn or True:
         if c_attrs: copy_text += f" ({','.join(c_attrs)})"
         copy_text += "\n"
     
-    # [修正 2] 邏輯分流：檢查是否整支卦無變爻 (has_moving)
+    copy_text += "\n" # 保持些許間距
+    
+    # [修正 3] 移除標題列與分隔線，直接輸出含 Key 的資料行
+    
+    labels_map = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"]
+    
     if has_moving:
         # [有動變] 顯示完整欄位
-        copy_text += "\n爻位  六神  藏伏        【主卦】          動變          【變卦】        納音(主->變)\n"
-        copy_text += "-" * 100 + "\n"
-        
-        labels_map = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"]
-        
         for i in range(5, -1, -1):
             line = lines_data[i]
             
@@ -690,11 +683,6 @@ if btn or True:
             
     else:
         # [無動變] 簡化欄位
-        copy_text += "\n爻位  六神  藏伏        【主卦】        納音\n"
-        copy_text += "-" * 70 + "\n"
-        
-        labels_map = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"]
-        
         for i in range(5, -1, -1):
             line = lines_data[i]
             

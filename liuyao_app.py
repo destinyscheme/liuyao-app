@@ -7,7 +7,7 @@ from lunar_python import Solar, Lunar
 # ==============================================================================
 # 0. 網頁設定 & CSS (視覺優化：外框保留，內框全除)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-AI極致版v46", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-AI極致版v47", layout="wide")
 
 st.markdown("""
 <style>
@@ -346,6 +346,7 @@ with st.sidebar:
     gz_year, gz_month, gz_day, gz_hour = "", "", "", ""
     day_stem, day_branch = "", ""
     month_branch = ""
+    west_date_str = ""
     
     tz_offset = datetime.timedelta(hours=8)
     now_tw = datetime.datetime.utcnow() + tz_offset
@@ -357,20 +358,24 @@ with st.sidebar:
     if date_mode == "自動 (Current)":
         solar = Solar.fromYmdHms(now_tw.year, now_tw.month, now_tw.day, now_tw.hour, now_tw.minute, 0)
         lunar = solar.getLunar()
-        gz_year = lunar.getYearInGanZhi()
+        # [修正 1] 使用 getYearInGanZhiExact 確保立春後換年柱 (丙午)
+        gz_year = lunar.getYearInGanZhiExact() 
         gz_month = lunar.getMonthInGanZhiExact()
         gz_day = lunar.getDayInGanZhi()
         gz_hour = lunar.getTimeInGanZhi()
+        west_date_str = now_tw.strftime("%Y/%m/%d %H:%M")
     
     elif date_mode == "指定西曆":
         d = st.date_input("日期", value=st.session_state.init_date)
         t = st.time_input("時間", value=st.session_state.init_time)
         solar = Solar.fromYmdHms(d.year, d.month, d.day, t.hour, t.minute, 0)
         lunar = solar.getLunar()
-        gz_year = lunar.getYearInGanZhi()
+        # [修正 1] 使用 getYearInGanZhiExact
+        gz_year = lunar.getYearInGanZhiExact()
         gz_month = lunar.getMonthInGanZhiExact()
         gz_day = lunar.getDayInGanZhi()
         gz_hour = lunar.getTimeInGanZhi()
+        west_date_str = f"{d.strftime('%Y/%m/%d')} {t.strftime('%H:%M')}"
 
     else: 
         c1, c2 = st.columns(2)
@@ -378,6 +383,7 @@ with st.sidebar:
         gz_month = c2.text_input("月柱", "己丑")
         gz_day = c1.text_input("日柱", "丁酉")
         gz_hour = c2.text_input("時柱", "己酉")
+        west_date_str = "(手動輸入)"
 
     if gz_day:
         day_stem = gz_day[0]
@@ -510,17 +516,10 @@ if btn or True:
 
     question_html = f"""<div style="font-size:1.2em; font-weight:bold; margin-bottom:10px; border-bottom:1px solid #000; padding-bottom:5px;">問題：{question_input if question_input else "（未輸入）"}</div>"""
 
-    date_parts = []
-    if gz_year: date_parts.append(f"<span>{gz_year}</span> 年")
-    date_parts.append(f"<span>{gz_month}</span> 月")
-    date_parts.append(f"<span>{gz_day}</span> 日")
-    if gz_hour: date_parts.append(f"<span>{gz_hour}</span> 時")
-    
-    date_html_str = " ".join(date_parts)
-
+    # [修正 2] 顯示西曆與干支
     info_html = f"""<div class="info-box">
 <div style="text-align:center; font-size:1.1em; font-weight:bold; margin-bottom:10px;">
-{date_html_str} &nbsp;&nbsp; (旬空: <span>{voids}</span>)
+西曆：{west_date_str}。干支曆：{gz_year} 年 {gz_month} 月 {gz_day} 日 {gz_hour} 時 &nbsp;&nbsp; (旬空: <span>{voids}</span>)
 </div>
 <div style="display:flex; justify-content:center;">
     <div style="text-align:left; font-size:0.95em; line-height:1.7;">
@@ -614,16 +613,14 @@ if btn or True:
     # --------------------------------------------------------------------------
     st.markdown("### 📋 複製用文字資料 (AI 判讀輔助)")
     
-    # [修正 1] 星煞標籤：【星煞】：
-    # 格式: 【星煞】：天喜:戌 | 天醫:丑 ...
-    
     all_stars = star_list_row1 + star_list_row2
     formatted_stars = " | ".join([s.replace("-", ":") for s in all_stars])
     
     copy_text = "請先理解我提供的資料，然後用markdown方式重新撰寫排盤表，且先不用解卦，待我確認你的排盤正確，再進行完整解卦：\n\n"
     
     copy_text += f"【問題】：{question_input if question_input else '未輸入'}\n"
-    copy_text += f"【時間】：{gz_year}年 {gz_month}月 {gz_day}日 {gz_hour}時\n"
+    # [修正 2] 複製用文字資料：新增【日期】標籤及西曆/干支並列
+    copy_text += f"【日期】：西曆：{west_date_str}。干支曆：{gz_year}年 {gz_month}月 {gz_day}日 {gz_hour}時\n"
     copy_text += f"【旬空】：{voids}\n"
     copy_text += f"【星煞】：{formatted_stars}\n\n"
     
@@ -681,7 +678,7 @@ if btn or True:
             copy_text += row_str + "\n"
             
     else:
-        # [無動變] 簡化欄位 (移除動變、變卦)
+        # [無動變] 簡化欄位
         for i in range(5, -1, -1):
             line = lines_data[i]
             

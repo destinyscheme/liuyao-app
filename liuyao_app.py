@@ -6,7 +6,7 @@ from lunar_python import Solar, Lunar
 # ==============================================================================
 # 0. 網頁設定 & CSS (視覺優化：外框保留，內框全除)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-AI極致版v49", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-AI極致版v50", layout="wide")
 
 st.markdown("""
 <style>
@@ -352,7 +352,7 @@ with st.sidebar:
     st.header("設定")
     question_input = st.text_input("輸入問題", placeholder="請輸入占卜問題...")
     
-    # [修正] 移除「自動」，預設為「指定西曆」，「手動干支」改名為「指定干支曆」
+    # 預設為「指定西曆」，「手動干支」改名為「指定干支曆」
     date_mode = st.radio("日期模式", ["指定西曆", "指定干支曆"])
     
     gz_year, gz_month, gz_day, gz_hour = "", "", "", ""
@@ -517,9 +517,13 @@ if btn or True:
         s_idx = HEAVENLY_STEMS.index(stem)
         b_idx = EARTHLY_BRANCHES.index(branch)
         diff = (b_idx - s_idx) % 12
-        return f"{EARTHLY_BRANCHES[(diff - 2) % 12]}{EARTHLY_BRANCHES[(diff - 1) % 12]}"
+        return (EARTHLY_BRANCHES[(diff - 2) % 12], EARTHLY_BRANCHES[(diff - 1) % 12])
     
-    voids = get_voids(day_stem, day_branch) if day_stem and day_branch else "??"
+    voids = get_voids(day_stem, day_branch) if day_stem and day_branch else ("?", "?")
+    
+    # [修正] 旬空格式：寅、卯
+    voids_formatted = f"{voids[0]}、{voids[1]}"
+    
     s_a = STAR_A_TABLE.get(month_branch, ("-", "-"))
     s_b = STAR_B_TABLE.get(day_stem, ("-", "-", "-", "-"))
     s_c = STAR_C_TABLE.get(day_branch, ("-", "-", "-", "-", "-", "-", "-"))
@@ -536,25 +540,30 @@ if btn or True:
     question_html = f"""<div style="font-size:1.2em;
     font-weight:bold; margin-bottom:10px; border-bottom:1px solid #000; padding-bottom:5px;">問題：{question_input if question_input else "（未輸入）"}</div>"""
 
-    # [修正] 顯示日期字串建構邏輯
-    date_display_text = ""
+    # [修正] 顯示日期字串建構：利用 HTML 進行紅字標示
+    # 格式：西曆。年(黑) 月日(紅) 時(黑)
     
+    html_date_parts = []
     if date_mode == "指定西曆":
-        # 格式：西曆時間。干支曆 (無前綴)
-        date_display_text = f"{west_date_str}。{gz_year} 年 {gz_month} 月 {gz_day} 日 {gz_hour} 時"
-    else:
-        # 指定干支曆：不顯示西曆，若年或時為空則不顯示
-        parts = []
-        if gz_year.strip(): parts.append(f"{gz_year} 年")
-        parts.append(f"{gz_month} 月")
-        parts.append(f"{gz_day} 日")
-        if gz_hour.strip(): parts.append(f"{gz_hour} 時")
-        date_display_text = " ".join(parts)
+        html_date_parts.append(f"{west_date_str}。")
+    
+    # 年 (若有輸入則顯示)
+    if gz_year.strip():
+        html_date_parts.append(f"{gz_year} 年")
+        
+    # 月日 (強制紅字)
+    html_date_parts.append(f"<span style='color:#d32f2f; font-weight:bold;'>{gz_month} 月 {gz_day} 日</span>")
+    
+    # 時 (若有輸入則顯示)
+    if gz_hour.strip():
+        html_date_parts.append(f"{gz_hour} 時")
+        
+    final_date_html = " ".join(html_date_parts)
 
     info_html = f"""<div class="info-box">
 <div style="text-align:center;
 font-size:1.1em; font-weight:bold; margin-bottom:10px;">
-{date_display_text} &nbsp;&nbsp; (旬空: <span>{voids}</span>)
+{final_date_html} &nbsp;&nbsp; <span style='color:#d32f2f;'>【旬空】：{voids_formatted}</span>
 </div>
 <div style="display:flex; justify-content:center;">
     <div style="text-align:left;
@@ -659,7 +668,7 @@ font-size:0.9em;">{m['shiying']}</div>
     
     copy_text += f"【問題】：{question_input if question_input else '未輸入'}\n"
     
-    # [修正] 複製用文字資料：日期字串建構 (移除西曆/干支曆前綴)
+    # 複製用文字資料：日期字串建構
     copy_date_str = ""
     if date_mode == "指定西曆":
         copy_date_str = f"{west_date_str}。{gz_year}年 {gz_month}月 {gz_day}日 {gz_hour}時"
@@ -673,8 +682,9 @@ font-size:0.9em;">{m['shiying']}</div>
         copy_date_str = " ".join(c_parts)
     
     copy_text += f"【日期】：{copy_date_str}\n"
-        
-    copy_text += f"【旬空】：{voids}\n"
+    
+    # [修正] 旬空格式：寅、卯
+    copy_text += f"【旬空】：{voids_formatted}\n"
     copy_text += f"【星煞】：{formatted_stars}\n\n"
     
     copy_text += f"【主卦】：{palace}宮-{m_display_name}"

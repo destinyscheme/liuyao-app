@@ -1,13 +1,12 @@
 import streamlit as st
 import datetime
 import random
-import pandas as pd
 from lunar_python import Solar, Lunar
 
 # ==============================================================================
 # 0. 網頁設定 & CSS (視覺優化：外框保留，內框全除)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-AI極致版v48", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-AI極致版v49", layout="wide")
 
 st.markdown("""
 <style>
@@ -352,7 +351,9 @@ def calculate_hexagram(numbers, day_stem, day_branch):
 with st.sidebar:
     st.header("設定")
     question_input = st.text_input("輸入問題", placeholder="請輸入占卜問題...")
-    date_mode = st.radio("日期模式", ["自動 (Current)", "指定西曆", "手動干支"])
+    
+    # [修正] 移除「自動」，預設為「指定西曆」，「手動干支」改名為「指定干支曆」
+    date_mode = st.radio("日期模式", ["指定西曆", "指定干支曆"])
     
     gz_year, gz_month, gz_day, gz_hour = "", "", "", ""
     day_stem, day_branch = "", ""
@@ -366,28 +367,13 @@ with st.sidebar:
         st.session_state.init_time = now_tw.time()
         st.session_state.init_date = now_tw.date()
     
-    # [同步修正] 檢查 session state 是否已有干支紀錄，若無則初始化
+    # 檢查 session state 是否已有干支紀錄，若無則初始化
     if "gz_year" not in st.session_state: st.session_state.gz_year = "乙巳"
     if "gz_month" not in st.session_state: st.session_state.gz_month = "己丑"
     if "gz_day" not in st.session_state: st.session_state.gz_day = "丁酉"
     if "gz_hour" not in st.session_state: st.session_state.gz_hour = "己酉"
 
-    if date_mode == "自動 (Current)":
-        solar = Solar.fromYmdHms(now_tw.year, now_tw.month, now_tw.day, now_tw.hour, now_tw.minute, 0)
-        lunar = solar.getLunar()
-        gz_year = lunar.getYearInGanZhiExact() 
-        gz_month = lunar.getMonthInGanZhiExact()
-        gz_day = lunar.getDayInGanZhi()
-        gz_hour = lunar.getTimeInGanZhi()
-        west_date_str = now_tw.strftime("%Y/%m/%d %H:%M")
-        
-        # [同步修正] 自動模式下更新 session state
-        st.session_state.gz_year = gz_year
-        st.session_state.gz_month = gz_month
-        st.session_state.gz_day = gz_day
-        st.session_state.gz_hour = gz_hour
-    
-    elif date_mode == "指定西曆":
+    if date_mode == "指定西曆":
         d = st.date_input("日期", value=st.session_state.init_date)
         t = st.time_input("時間", value=st.session_state.init_time)
         solar = Solar.fromYmdHms(d.year, d.month, d.day, t.hour, t.minute, 0)
@@ -398,20 +384,20 @@ with st.sidebar:
         gz_hour = lunar.getTimeInGanZhi()
         west_date_str = f"{d.strftime('%Y/%m/%d')} {t.strftime('%H:%M')}"
         
-        # [同步修正] 指定西曆模式下更新 session state
+        # 指定西曆模式下更新 session state
         st.session_state.gz_year = gz_year
         st.session_state.gz_month = gz_month
         st.session_state.gz_day = gz_day
         st.session_state.gz_hour = gz_hour
 
-    else: 
-        # [同步修正] 手動模式下，輸入框預設值使用 session state，確保同步
+    else: # 指定干支曆
+        # 輸入框預設值使用 session state，確保同步
         c1, c2 = st.columns(2)
         gz_year = c1.text_input("年柱", value=st.session_state.gz_year)
         gz_month = c2.text_input("月柱", value=st.session_state.gz_month)
         gz_day = c1.text_input("日柱", value=st.session_state.gz_day)
         gz_hour = c2.text_input("時柱", value=st.session_state.gz_hour)
-        west_date_str = "(手動輸入)"
+        west_date_str = "" # 干支模式不顯示西曆
         
         # 當手動更改後，更新 session state 以保持最新狀態
         st.session_state.gz_year = gz_year
@@ -516,7 +502,7 @@ with st.sidebar:
 """)
 
 if btn or True:
-    if date_mode == "手動干支":
+    if date_mode == "指定干支曆":
         if not gz_month or not gz_day:
             st.error("【錯誤】月柱與日柱為必填項目，請完整輸入干支（如：甲子）")
             st.stop()
@@ -550,11 +536,20 @@ if btn or True:
     question_html = f"""<div style="font-size:1.2em;
     font-weight:bold; margin-bottom:10px; border-bottom:1px solid #000; padding-bottom:5px;">問題：{question_input if question_input else "（未輸入）"}</div>"""
 
-    # [修正 2] 顯示西曆與干支 (根據 date_mode 調整顯示內容)
-    if date_mode == "手動干支":
-        date_display_text = f"{gz_year} 年 {gz_month} 月 {gz_day} 日 {gz_hour} 時"
+    # [修正] 顯示日期字串建構邏輯
+    date_display_text = ""
+    
+    if date_mode == "指定西曆":
+        # 格式：西曆時間。干支曆 (無前綴)
+        date_display_text = f"{west_date_str}。{gz_year} 年 {gz_month} 月 {gz_day} 日 {gz_hour} 時"
     else:
-        date_display_text = f"西曆：{west_date_str}。干支曆：{gz_year} 年 {gz_month} 月 {gz_day} 日 {gz_hour} 時"
+        # 指定干支曆：不顯示西曆，若年或時為空則不顯示
+        parts = []
+        if gz_year.strip(): parts.append(f"{gz_year} 年")
+        parts.append(f"{gz_month} 月")
+        parts.append(f"{gz_day} 日")
+        if gz_hour.strip(): parts.append(f"{gz_hour} 時")
+        date_display_text = " ".join(parts)
 
     info_html = f"""<div class="info-box">
 <div style="text-align:center;
@@ -663,11 +658,21 @@ font-size:0.9em;">{m['shiying']}</div>
     copy_text = "請先理解我提供的資料，然後用markdown方式重新撰寫排盤表，且先不用解卦，待我確認你的排盤正確，再進行完整解卦：\n\n"
     
     copy_text += f"【問題】：{question_input if question_input else '未輸入'}\n"
-    # [修正 2] 複製用文字資料：依日期模式調整顯示
-    if date_mode == "手動干支":
-        copy_text += f"【日期】：{gz_year}年 {gz_month}月 {gz_day}日 {gz_hour}時\n"
+    
+    # [修正] 複製用文字資料：日期字串建構 (移除西曆/干支曆前綴)
+    copy_date_str = ""
+    if date_mode == "指定西曆":
+        copy_date_str = f"{west_date_str}。{gz_year}年 {gz_month}月 {gz_day}日 {gz_hour}時"
     else:
-        copy_text += f"【日期】：西曆：{west_date_str}。干支曆：{gz_year}年 {gz_month}月 {gz_day}日 {gz_hour}時\n"
+        # 指定干支曆
+        c_parts = []
+        if gz_year.strip(): c_parts.append(f"{gz_year}年")
+        c_parts.append(f"{gz_month}月")
+        c_parts.append(f"{gz_day}日")
+        if gz_hour.strip(): c_parts.append(f"{gz_hour}時")
+        copy_date_str = " ".join(c_parts)
+    
+    copy_text += f"【日期】：{copy_date_str}\n"
         
     copy_text += f"【旬空】：{voids}\n"
     copy_text += f"【星煞】：{formatted_stars}\n\n"

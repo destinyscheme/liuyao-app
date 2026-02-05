@@ -7,7 +7,7 @@ from lunar_python import Solar, Lunar
 # ==============================================================================
 # 0. 網頁設定 & CSS (視覺優化：外框保留，內框全除)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-AI極致版v47", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-AI極致版v48", layout="wide")
 
 st.markdown("""
 <style>
@@ -38,7 +38,8 @@ label[data-baseweb="label"] {
 
 /* 按鈕設定 (紅底白字) */
 div.stButton > button {
-    background-color: #d32f2f !important; /* 紅色背景 */
+    background-color: #d32f2f !important;
+    /* 紅色背景 */
     color: #ffffff !important;             /* 白色文字 */
     border: 1px solid #d32f2f !important;
     border-radius: 0px !important;
@@ -47,18 +48,20 @@ div.stButton > button {
     margin-bottom: 20px;
 }
 div.stButton > button:hover {
-    background-color: #b71c1c !important; /* 滑鼠懸停時更深紅 */
+    background-color: #b71c1c !important;
+    /* 滑鼠懸停時更深紅 */
     color: #ffffff !important;
 }
 
 /* 表格樣式：保留外框，刪除所有內框 */
 .hex-table { 
-    width: 100%; 
+    width: 100%;
     border-collapse: collapse; 
     text-align: center; 
     font-size: 18px; 
     table-layout: fixed; 
-    border: 2px solid #000 !important; /* 保留最外層邊框 */
+    border: 2px solid #000 !important;
+    /* 保留最外層邊框 */
     margin-top: 10px;
 }
 
@@ -66,7 +69,7 @@ div.stButton > button:hover {
     padding: 8px 2px;
     border: none !important; /* 移除所有儲存格的邊框 */
     vertical-align: middle; 
-    color: #000; 
+    color: #000;
 }
 
 /* 標題列樣式 */
@@ -81,21 +84,27 @@ div.stButton > button:hover {
 
 /* 輔助類別 */
 .td-main { border-right: none !important; }
-.td-arrow { border-left: none !important; border-right: none !important; }
+.td-arrow { border-left: none !important; border-right: none !important;
+}
 .td-change { border-left: none !important; }
 
 /* 爻條樣式 */
-.bar-yang { display: inline-block; width: 100px; height: 14px; background-color: #000; }
+.bar-yang { display: inline-block; width: 100px; height: 14px; background-color: #000;
+}
 .bar-yin { display: inline-flex; width: 100px; height: 14px; justify-content: space-between; }
-.bar-yin::before, .bar-yin::after { content: ""; width: 42px; height: 100%; background-color: #000; }
+.bar-yin::before, .bar-yin::after { content: ""; width: 42px; height: 100%;
+background-color: #000; }
 
 .bar-yang-c { background-color: #000; }
 .bar-yin-c::before, .bar-yin-c::after { background-color: #000; }
 
 /* 資訊區塊 */
-.info-box { border: 1px solid #000; padding: 15px; margin-bottom: 10px; background-color: #fff; line-height: 1.6; }
-.attr-tag { font-size: 0.7em; border: 1px solid #000; padding: 1px 4px; margin-left: 5px; font-weight: normal; }
-.hex-title-text { font-size: 1.1em; display: block; margin-bottom: 5px; }
+.info-box { border: 1px solid #000;
+padding: 15px; margin-bottom: 10px; background-color: #fff; line-height: 1.6; }
+.attr-tag { font-size: 0.7em; border: 1px solid #000; padding: 1px 4px;
+margin-left: 5px; font-weight: normal; }
+.hex-title-text { font-size: 1.1em; display: block; margin-bottom: 5px;
+}
 
 </style>
 """, unsafe_allow_html=True)
@@ -163,9 +172,11 @@ for full_name in HEX_INFO.keys():
     SHORT_NAME_MAP[full_name] = full_name
     FULL_TO_SHORT_MAP[full_name] = short_name
 
-STAR_A_TABLE = {"子": ("未", "亥"), "丑": ("未", "子"), "寅": ("戌", "丑"), "卯": ("戌", "寅"), "辰": ("戌", "卯"), "巳": ("丑", "辰"), "午": ("丑", "巳"), "未": ("丑", "午"), "申": ("辰", "未"), "酉": ("辰", "申"), "戌": ("辰", "酉"), "亥": ("未", "戌")}
+STAR_A_TABLE = {"子": ("未", "亥"), "丑": ("未", "子"), "寅": ("戌", "丑"), "卯": ("戌", "寅"), "辰": ("戌", "卯"), 
+"巳": ("丑", "辰"), "午": ("丑", "巳"), "未": ("丑", "午"), "申": ("辰", "未"), "酉": ("辰", "申"), "戌": ("辰", "酉"), "亥": ("未", "戌")}
 STAR_B_TABLE = {"甲": ("寅", "卯", "巳", "丑、未"), "乙": ("卯", "寅", "午", "申、子"), "丙": ("巳", "午", "申", "酉、亥"), "丁": ("午", "巳", "酉", "酉、亥"), "戊": ("巳", "午", "申", "丑、未"), "己": ("午", "巳", "酉", "申、子"), "庚": ("申", "酉", "亥", "寅、午"), "辛": ("酉", "申", "子", "寅、午"), "壬": ("亥", "子", "寅", "卯、巳"), "癸": ("子", "亥", "卯", "卯、巳")}
-STAR_C_TABLE = {"子": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "丑": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "寅": ("卯", "辰", "午", "申", "戌", "亥", "子"), "卯": ("子", "丑", "卯", "巳", "未", "申", "酉"), "辰": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "巳": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "午": ("卯", "辰", "午", "申", "戌", "亥", "子"), "未": ("子", "丑", "卯", "巳", "未", "申", "酉"), "申": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "酉": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "戌": ("卯", "辰", "午", "申", "戌", "亥", "子"), "亥": ("子", "丑", "卯", "巳", "未", "申", "酉")}
+STAR_C_TABLE = {"子": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "丑": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "寅": ("卯", "辰", "午", "申", "戌", "亥", "子"), "卯": ("子", "丑", 
+"卯", "巳", "未", "申", "酉"), "辰": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "巳": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "午": ("卯", "辰", "午", "申", "戌", "亥", "子"), "未": ("子", "丑", "卯", "巳", "未", "申", "酉"), "申": ("酉", "戌", "子", "寅", "辰", "巳", "午"), "酉": ("午", "未", "酉", "亥", "丑", "寅", "卯"), "戌": ("卯", "辰", "午", "申", "戌", "亥", "子"), "亥": ("子", "丑", "卯", "巳", "未", "申", "酉")}
 
 SIX_CLASH_HEX = ["乾為天", "坎為水", "艮為山", "震為雷", "巽為風", "離為火", "坤為地", "兌為澤", "天雷無妄", "雷天大壯"]
 SIX_HARMONY_HEX = ["天地否", "地天泰", "地雷復", "雷地豫", "水澤節", "澤水困", "山火賁", "火山旅"]
@@ -354,36 +365,59 @@ with st.sidebar:
     if "init_time" not in st.session_state:
         st.session_state.init_time = now_tw.time()
         st.session_state.init_date = now_tw.date()
+    
+    # [同步修正] 檢查 session state 是否已有干支紀錄，若無則初始化
+    if "gz_year" not in st.session_state: st.session_state.gz_year = "乙巳"
+    if "gz_month" not in st.session_state: st.session_state.gz_month = "己丑"
+    if "gz_day" not in st.session_state: st.session_state.gz_day = "丁酉"
+    if "gz_hour" not in st.session_state: st.session_state.gz_hour = "己酉"
 
     if date_mode == "自動 (Current)":
         solar = Solar.fromYmdHms(now_tw.year, now_tw.month, now_tw.day, now_tw.hour, now_tw.minute, 0)
         lunar = solar.getLunar()
-        # [修正 1] 使用 getYearInGanZhiExact 確保立春後換年柱 (丙午)
         gz_year = lunar.getYearInGanZhiExact() 
         gz_month = lunar.getMonthInGanZhiExact()
         gz_day = lunar.getDayInGanZhi()
         gz_hour = lunar.getTimeInGanZhi()
         west_date_str = now_tw.strftime("%Y/%m/%d %H:%M")
+        
+        # [同步修正] 自動模式下更新 session state
+        st.session_state.gz_year = gz_year
+        st.session_state.gz_month = gz_month
+        st.session_state.gz_day = gz_day
+        st.session_state.gz_hour = gz_hour
     
     elif date_mode == "指定西曆":
         d = st.date_input("日期", value=st.session_state.init_date)
         t = st.time_input("時間", value=st.session_state.init_time)
         solar = Solar.fromYmdHms(d.year, d.month, d.day, t.hour, t.minute, 0)
         lunar = solar.getLunar()
-        # [修正 1] 使用 getYearInGanZhiExact
         gz_year = lunar.getYearInGanZhiExact()
         gz_month = lunar.getMonthInGanZhiExact()
         gz_day = lunar.getDayInGanZhi()
         gz_hour = lunar.getTimeInGanZhi()
         west_date_str = f"{d.strftime('%Y/%m/%d')} {t.strftime('%H:%M')}"
+        
+        # [同步修正] 指定西曆模式下更新 session state
+        st.session_state.gz_year = gz_year
+        st.session_state.gz_month = gz_month
+        st.session_state.gz_day = gz_day
+        st.session_state.gz_hour = gz_hour
 
     else: 
+        # [同步修正] 手動模式下，輸入框預設值使用 session state，確保同步
         c1, c2 = st.columns(2)
-        gz_year = c1.text_input("年柱", "乙巳")
-        gz_month = c2.text_input("月柱", "己丑")
-        gz_day = c1.text_input("日柱", "丁酉")
-        gz_hour = c2.text_input("時柱", "己酉")
+        gz_year = c1.text_input("年柱", value=st.session_state.gz_year)
+        gz_month = c2.text_input("月柱", value=st.session_state.gz_month)
+        gz_day = c1.text_input("日柱", value=st.session_state.gz_day)
+        gz_hour = c2.text_input("時柱", value=st.session_state.gz_hour)
         west_date_str = "(手動輸入)"
+        
+        # 當手動更改後，更新 session state 以保持最新狀態
+        st.session_state.gz_year = gz_year
+        st.session_state.gz_month = gz_month
+        st.session_state.gz_day = gz_day
+        st.session_state.gz_hour = gz_hour
 
     if gz_day:
         day_stem = gz_day[0]
@@ -500,7 +534,6 @@ if btn or True:
         return f"{EARTHLY_BRANCHES[(diff - 2) % 12]}{EARTHLY_BRANCHES[(diff - 1) % 12]}"
     
     voids = get_voids(day_stem, day_branch) if day_stem and day_branch else "??"
-    
     s_a = STAR_A_TABLE.get(month_branch, ("-", "-"))
     s_b = STAR_B_TABLE.get(day_stem, ("-", "-", "-", "-"))
     s_c = STAR_C_TABLE.get(day_branch, ("-", "-", "-", "-", "-", "-", "-"))
@@ -514,15 +547,23 @@ if btn or True:
     stars_row1_text = "   ".join(star_list_row1)
     stars_row2_text = "   ".join(star_list_row2)
 
-    question_html = f"""<div style="font-size:1.2em; font-weight:bold; margin-bottom:10px; border-bottom:1px solid #000; padding-bottom:5px;">問題：{question_input if question_input else "（未輸入）"}</div>"""
+    question_html = f"""<div style="font-size:1.2em;
+    font-weight:bold; margin-bottom:10px; border-bottom:1px solid #000; padding-bottom:5px;">問題：{question_input if question_input else "（未輸入）"}</div>"""
 
-    # [修正 2] 顯示西曆與干支
+    # [修正 2] 顯示西曆與干支 (根據 date_mode 調整顯示內容)
+    if date_mode == "手動干支":
+        date_display_text = f"{gz_year} 年 {gz_month} 月 {gz_day} 日 {gz_hour} 時"
+    else:
+        date_display_text = f"西曆：{west_date_str}。干支曆：{gz_year} 年 {gz_month} 月 {gz_day} 日 {gz_hour} 時"
+
     info_html = f"""<div class="info-box">
-<div style="text-align:center; font-size:1.1em; font-weight:bold; margin-bottom:10px;">
-西曆：{west_date_str}。干支曆：{gz_year} 年 {gz_month} 月 {gz_day} 日 {gz_hour} 時 &nbsp;&nbsp; (旬空: <span>{voids}</span>)
+<div style="text-align:center;
+font-size:1.1em; font-weight:bold; margin-bottom:10px;">
+{date_display_text} &nbsp;&nbsp; (旬空: <span>{voids}</span>)
 </div>
 <div style="display:flex; justify-content:center;">
-    <div style="text-align:left; font-size:0.95em; line-height:1.7;">
+    <div style="text-align:left;
+    font-size:0.95em; line-height:1.7;">
         {stars_row1_html}<br>
         {stars_row2_html}
     </div>
@@ -580,16 +621,19 @@ if btn or True:
 
         if has_moving:
              c_bar_cls = "bar-yang bar-yang-c" if c["type"] == "yang" else "bar-yin bar-yin-c"
-             c_cell_content = f"""<div style="display:flex; align-items:center; justify-content:center; gap:5px;">
+             c_cell_content = f"""<div style="display:flex;
+            align-items:center; justify-content:center; gap:5px;">
 <div class="{c_bar_cls}"></div>
 <div style="text-align:left; min-width:55px; color:#000;">{c['rel']}{c['branch']}{c['el']}</div>
 </div>"""
              c_nayin_short = c["nayin"][-3:] if c["nayin"] else ""
 
-        main_cell = f"""<div style="display:flex; align-items:center; justify-content:center; gap:5px;">
+        main_cell = f"""<div style="display:flex;
+        align-items:center; justify-content:center; gap:5px;">
 <div style="text-align:right; min-width:55px;">{m['rel']}{m['branch']}{m['el']}</div>
 <div class="{m_bar_cls}"></div>
-<div style="text-align:left; width:25px; color:#000; font-weight:bold; font-size:0.9em;">{m['shiying']}</div>
+<div style="text-align:left; width:25px; color:#000; font-weight:bold;
+font-size:0.9em;">{m['shiying']}</div>
 </div>"""
 
         row = f"""<tr>
@@ -619,8 +663,12 @@ if btn or True:
     copy_text = "請先理解我提供的資料，然後用markdown方式重新撰寫排盤表，且先不用解卦，待我確認你的排盤正確，再進行完整解卦：\n\n"
     
     copy_text += f"【問題】：{question_input if question_input else '未輸入'}\n"
-    # [修正 2] 複製用文字資料：新增【日期】標籤及西曆/干支並列
-    copy_text += f"【日期】：西曆：{west_date_str}。干支曆：{gz_year}年 {gz_month}月 {gz_day}日 {gz_hour}時\n"
+    # [修正 2] 複製用文字資料：依日期模式調整顯示
+    if date_mode == "手動干支":
+        copy_text += f"【日期】：{gz_year}年 {gz_month}月 {gz_day}日 {gz_hour}時\n"
+    else:
+        copy_text += f"【日期】：西曆：{west_date_str}。干支曆：{gz_year}年 {gz_month}月 {gz_day}日 {gz_hour}時\n"
+        
     copy_text += f"【旬空】：{voids}\n"
     copy_text += f"【星煞】：{formatted_stars}\n\n"
     

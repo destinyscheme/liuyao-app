@@ -7,7 +7,7 @@ from lunar_python import Solar, Lunar
 # ==============================================================================
 # 0. 網頁設定 & CSS (視覺優化：外框保留，內框全除)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-AI極致版v45", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-AI極致版v46", layout="wide")
 
 st.markdown("""
 <style>
@@ -505,7 +505,6 @@ if btn or True:
     stars_row1_html = "&nbsp;&nbsp;&nbsp;".join(star_list_row1)
     stars_row2_html = "&nbsp;&nbsp;&nbsp;".join(star_list_row2)
     
-    # 
     stars_row1_text = "   ".join(star_list_row1)
     stars_row2_text = "   ".join(star_list_row2)
 
@@ -615,11 +614,10 @@ if btn or True:
     # --------------------------------------------------------------------------
     st.markdown("### 📋 複製用文字資料 (AI 判讀輔助)")
     
-    # [修正 2] 統一星煞區塊的格式 (使用建議的單一列表述，避免換行問題，且對齊更佳)
-    # 格式: [星煞] 天喜:戌 | 天醫:丑 ...
+    # [修正 1] 星煞標籤：【星煞】：
+    # 格式: 【星煞】：天喜:戌 | 天醫:丑 ...
     
     all_stars = star_list_row1 + star_list_row2
-    # 將 "天喜-戌" 轉換為 "天喜:戌" 以符合 Key:Value 風格
     formatted_stars = " | ".join([s.replace("-", ":") for s in all_stars])
     
     copy_text = "請先理解我提供的資料，然後用markdown方式重新撰寫排盤表，且先不用解卦，待我確認你的排盤正確，再進行完整解卦：\n\n"
@@ -627,7 +625,7 @@ if btn or True:
     copy_text += f"【問題】：{question_input if question_input else '未輸入'}\n"
     copy_text += f"【時間】：{gz_year}年 {gz_month}月 {gz_day}日 {gz_hour}時\n"
     copy_text += f"【旬空】：{voids}\n"
-    copy_text += f"[星煞] {formatted_stars}\n\n"
+    copy_text += f"【星煞】：{formatted_stars}\n\n"
     
     copy_text += f"【主卦】：{palace}宮-{m_display_name}"
     if m_attrs: copy_text += f" ({','.join(m_attrs)})"
@@ -683,7 +681,7 @@ if btn or True:
             copy_text += row_str + "\n"
             
     else:
-        # [無動變] 簡化欄位
+        # [無動變] 簡化欄位 (移除動變、變卦)
         for i in range(5, -1, -1):
             line = lines_data[i]
             

@@ -7,7 +7,7 @@ from lunar_python import Solar, Lunar
 # ==============================================================================
 # 0. 網頁設定 & CSS (視覺優化：外框保留，內框全除)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-AI極致版v44", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-AI極致版v45", layout="wide")
 
 st.markdown("""
 <style>
@@ -324,13 +324,9 @@ def calculate_hexagram(numbers, day_stem, day_branch):
         if (base_line["rel"], base_line["branch"], base_line["el"]) != (m_rel, m_branch, m_el):
             hidden_str = f"{base_line['rel']}{base_line['branch']}{base_line['el']}"
 
-        # Copy Text用的 full hidden (無條件)
-        full_hidden_str = f"{base_line['rel']}{base_line['branch']}{base_line['el']}"
-
         lines_data.append({
             "god": god,
             "hidden": hidden_str,
-            "full_hidden": full_hidden_str,
             "main": {"stem": m_stem, "branch": m_branch, "el": m_el, "nayin": m_nayin, "rel": m_rel, "shiying": shiying, "type": "yang" if main_code[i] else "yin"},
             "change": {"stem": c_stem, "branch": c_branch, "el": c_el, "nayin": c_nayin, "rel": c_rel, "type": "yang" if change_code[i] else "yin"},
             "move": moves[i]
@@ -509,6 +505,7 @@ if btn or True:
     stars_row1_html = "&nbsp;&nbsp;&nbsp;".join(star_list_row1)
     stars_row2_html = "&nbsp;&nbsp;&nbsp;".join(star_list_row2)
     
+    # 
     stars_row1_text = "   ".join(star_list_row1)
     stars_row2_text = "   ".join(star_list_row2)
 
@@ -614,17 +611,23 @@ if btn or True:
     st.markdown(final_html, unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
-    # 4. 複製用文字資料 (AI 判讀輔助 - 去除標題與分隔線版)
+    # 4. 複製用文字資料 (AI 判讀輔助 - 優化版)
     # --------------------------------------------------------------------------
     st.markdown("### 📋 複製用文字資料 (AI 判讀輔助)")
     
-    label_text = "【星煞】："
+    # [修正 2] 統一星煞區塊的格式 (使用建議的單一列表述，避免換行問題，且對齊更佳)
+    # 格式: [星煞] 天喜:戌 | 天醫:丑 ...
     
-    copy_text = "依據上傳檔案的排盤圖示，進行完整解卦，而上傳檔案的文字內容如下：\n\n"
+    all_stars = star_list_row1 + star_list_row2
+    # 將 "天喜-戌" 轉換為 "天喜:戌" 以符合 Key:Value 風格
+    formatted_stars = " | ".join([s.replace("-", ":") for s in all_stars])
+    
+    copy_text = "請先理解我提供的資料，然後用markdown方式重新撰寫排盤表，且先不用解卦，待我確認你的排盤正確，再進行完整解卦：\n\n"
+    
     copy_text += f"【問題】：{question_input if question_input else '未輸入'}\n"
     copy_text += f"【時間】：{gz_year}年 {gz_month}月 {gz_day}日 {gz_hour}時\n"
     copy_text += f"【旬空】：{voids}\n"
-    copy_text += f"{label_text}{stars_row1_text}\n{label_text}{stars_row2_text}\n\n"
+    copy_text += f"[星煞] {formatted_stars}\n\n"
     
     copy_text += f"【主卦】：{palace}宮-{m_display_name}"
     if m_attrs: copy_text += f" ({','.join(m_attrs)})"
@@ -635,9 +638,7 @@ if btn or True:
         if c_attrs: copy_text += f" ({','.join(c_attrs)})"
         copy_text += "\n"
     
-    copy_text += "\n" # 保持些許間距
-    
-    # [修正 3] 移除標題列與分隔線，直接輸出含 Key 的資料行
+    copy_text += "\n" # 間距
     
     labels_map = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"]
     
@@ -674,7 +675,7 @@ if btn or True:
             c_yy = "陽爻" if c['type'] == 'yang' else "陰爻"
             row_str += f"變卦：{c['rel']}{c['branch']}{c['el']} ({c_yy}) | "
             
-            # 6. 納音
+            # 6. 納音 (強制顯示 主->變)
             m_ny = m['nayin'][-3:] if m['nayin'] else "無"
             c_ny = line['change']['nayin'][-3:] if line['change']['nayin'] else "無"
             row_str += f"納音：{m_ny} -> {c_ny}"

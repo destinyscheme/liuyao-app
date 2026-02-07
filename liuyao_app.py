@@ -1,12 +1,13 @@
 import streamlit as st
 import datetime
 import random
+import pandas as pd
 from lunar_python import Solar, Lunar
 
 # ==============================================================================
 # 0. 網頁設定 & CSS (視覺優化：外框保留，內框全除)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-AI極致版v50", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-AI極致版v51", layout="wide")
 
 st.markdown("""
 <style>
@@ -542,17 +543,15 @@ if btn or True:
         
     # [修正 1] 月柱：天干黑、地支紅 (e.g. 庚(黑)寅(紅))
     # 日柱：全紅 (e.g. 庚戌(紅))
-    # gz_month 如 "庚寅", gz_day 如 "庚戌"
     
-    gz_m_str = ""
-    if len(gz_month) >= 2:
-        gz_m_str = f"{gz_month[0]}<span style='color:#d32f2f; font-weight:bold;'>{gz_month[1]}</span>"
-    else:
-        gz_m_str = gz_month # 防呆
-        
-    gz_d_str = f"<span style='color:#d32f2f; font-weight:bold;'>{gz_day}</span>"
+    m_stem = gz_month[0] if len(gz_month) > 0 else ""
+    m_branch = gz_month[1] if len(gz_month) > 1 else ""
     
-    html_date_parts.append(f"{gz_m_str} 月 {gz_d_str} 日")
+    # 組合紅色區塊: "寅 月 庚戌 日"
+    red_segment = f"{m_branch} 月 {gz_day} 日"
+    
+    # 最終組合: "庚" + <red>...</red>
+    html_date_parts.append(f"{m_stem}<span style='color:#d32f2f; font-weight:bold;'>{red_segment}</span>")
     
     # 時 (若有輸入則顯示)
     if gz_hour.strip():

@@ -7,7 +7,7 @@ from lunar_python import Solar, Lunar
 # ==============================================================================
 # 0. 網頁設定 & CSS (視覺優化：外框保留，內框全除)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-AI極致版v51", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-AI極致版v52", layout="wide")
 
 st.markdown("""
 <style>
@@ -547,7 +547,7 @@ if btn or True:
     m_stem = gz_month[0] if len(gz_month) > 0 else ""
     m_branch = gz_month[1] if len(gz_month) > 1 else ""
     
-    # 組合紅色區塊: "寅 月 庚戌 日"
+    # 組合紅色區塊: "寅 月 庚戌 日" (根據新指示：『月』與『日』字也改回紅色)
     red_segment = f"{m_branch} 月 {gz_day} 日"
     
     # 最終組合: "庚" + <red>...</red>
@@ -656,7 +656,7 @@ if btn or True:
     st.markdown("### 📋 複製用文字資料 (AI 判讀輔助)")
     
     all_stars = star_list_row1 + star_list_row2
-    formatted_stars = " | ".join([s.replace("-", ":") for s in all_stars])
+    formatted_stars = "，".join(all_stars)
     
     copy_text = "請先理解我提供的資料，然後用markdown方式重新撰寫排盤表，且先不用解卦，待我確認你的排盤正確，再進行完整解卦：\n\n"
     

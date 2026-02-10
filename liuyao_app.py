@@ -7,7 +7,7 @@ from lunar_python import Solar, Lunar
 # ==============================================================================
 # 0. 網頁設定 & CSS (視覺優化：外框保留，內框全除)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-AI極致版v52", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-AI極致版v53", layout="wide")
 
 st.markdown("""
 <style>
@@ -665,11 +665,10 @@ if btn or True:
     # 複製用文字資料：日期字串建構
     copy_date_str = ""
     if date_mode == "指定西曆":
-        copy_date_str = f"西曆：{west_date_str}。干支曆：{gz_year}年 {gz_month}月 {gz_day}日 {gz_hour}時"
+        copy_date_str = f"{west_date_str}。{gz_year}年 {gz_month}月 {gz_day}日 {gz_hour}時"
     else:
         # 指定干支曆
         c_parts = []
-        c_parts.append("干支曆：")
         if gz_year.strip(): c_parts.append(f"{gz_year}年")
         c_parts.append(f"{gz_month}月")
         c_parts.append(f"{gz_day}日")

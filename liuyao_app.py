@@ -7,7 +7,7 @@ from lunar_python import Solar, Lunar
 # ==============================================================================
 # 0. 網頁設定 & CSS (視覺優化：外框保留，內框全除)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-AI極致版v54", layout="wide")
+st.set_page_config(page_title="六爻智能排盤-AI極致版v55", layout="wide")
 
 st.markdown("""
 <style>
@@ -658,7 +658,7 @@ if btn or True:
     all_stars = star_list_row1 + star_list_row2
     formatted_stars = "，".join(all_stars)
     
-    copy_text = "請先理解我提供的資料，然後依序重複描述【問題】、【日期】、【旬空】、【星煞】，並重新撰寫排盤表，且先不用解卦，待我確認【問題】、【日期】、【旬空】、【星煞】與排盤表皆正確，再請進行完整解卦：\n\n"
+    copy_text = "請理解我提供的資料，然後依序重複描述【問題】、【日期】、【旬空】、【星煞】，並重新撰寫排盤表格，最後進行完整解卦：\n\n"
     
     copy_text += f"【問題】：{question_input if question_input else '未輸入'}\n"
     

@@ -686,7 +686,7 @@ if btn or True:
 最後請以單一句話給出【最終結論】。
 
 以下為排盤資料：
-\n\n"""
+\n"""
     
     copy_text += f"【問題】：{question_input if question_input else '未輸入'}\n"
     

@@ -683,7 +683,7 @@ if btn or True:
 僅限於佐證京房納甲所示之結果，用於校驗與補述，
 不得凌駕或改寫六爻占驗之結論。
 最後請以單一句話給出【最終結論】。
-以下為排盤資料：
+以下為問題及排盤資料：
 \n"""
     
     copy_text += f"【問題】：{question_input if question_input else '未輸入'}\n"

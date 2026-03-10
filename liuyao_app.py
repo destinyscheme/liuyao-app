@@ -7,7 +7,7 @@ from lunar_python import Solar, Lunar
 # ==============================================================================
 # 0. 網頁設定 & CSS (視覺優化：外框保留，內框全除)
 # ==============================================================================
-st.set_page_config(page_title="六爻智能排盤-AI極致版v55", layout="wide")
+st.set_page_config(page_title="六爻智能排盤", layout="wide")
 
 st.markdown("""
 <style>

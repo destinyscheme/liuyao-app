@@ -687,10 +687,6 @@ if btn or True:
 
 以下為排盤資料：
 \n\n"""
-
-    
-
-
     
     copy_text += f"【問題】：{question_input if question_input else '未輸入'}\n"
     
